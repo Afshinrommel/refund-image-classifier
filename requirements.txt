@@ -2,3 +2,8 @@ tensorflow
 pandas
 numpy
 pillow
+tensorflow
+numpy
+pillow
+requests
+

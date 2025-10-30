@@ -1,0 +1,30 @@
+name: Run batch prediction
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-batch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          pip install tensorflow pandas numpy gdown
+
+      - name: Run batch prediction
+        run: python main.py
+
+      - name: Upload predictions
+        uses: actions/upload-artifact@v3
+        with:
+          name: daily_predictions
+          path: daily_predictions.csv

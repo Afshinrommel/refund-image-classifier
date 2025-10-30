@@ -21,7 +21,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install tensorflow numpy pillow requests
+          # اگر فایل requirements.txt وجود دارد، نصب کن
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # نصب کتابخانه‌های لازم
+          pip install tensorflow numpy pillow requests pandas
 
       - name: Run batch prediction
         run: python main.py

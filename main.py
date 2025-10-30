@@ -12,7 +12,9 @@ import requests
 MODEL_FILENAME = "caltech_model.h5"
 #MODEL_URL = "https://drive.google.com/uc?id=YOUR_FILE_ID"  # در صورت نیاز جایگزین کن
 #MODEL_URL = "https://drive.google.com/file/d/1QgatECmfFze9sSoqbuIo1IDwmU1csCXX/view?usp=sharing"
-MODEL_URL = "https://drive.google.com/uc?id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX"
+#MODEL_URL = "https://drive.google.com/uc?id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX"
+MODEL_URL = "https://drive.usercontent.google.com/download?id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX&export=download"
+
 IMAGE_DIR = "caltech_split/val"
 OUTPUT_FILE = "daily_predictions.csv"
 

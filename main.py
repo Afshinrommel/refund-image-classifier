@@ -1,105 +1,94 @@
 import tensorflow as tf
 import numpy as np
 import os
-import sys
-import requests
-from datetime import datetime
-from PIL import Image
 
+import requests
+from PIL import Image
+from datetime import datetime
+MODEL_URL = "https://drive.google.com/uc?id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX"
 MODEL_FILENAME = "model.h5"
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX"
-IMAGE_DIR = "images"
+TEST_IMAGES_DIR = "test_images"
 OUTPUT_CSV = "daily_predictions.csv"
 
+print(">>> Running UPDATED main.py version 1.2 <<<")
 
-def download_model_if_needed():
-    """دانلود مدل از گوگل درایو اگر موجود نباشد."""
+def download_model():
+    """دانلود مدل از Google Drive"""
     if os.path.exists(MODEL_FILENAME):
-        print(f"✅ مدل '{MODEL_FILENAME}' از قبل وجود دارد.")
-        return
-    print(f"⬇️ در حال دانلود مدل از Google Drive ...")
-    try:
-        r = requests.get(MODEL_URL)
-        if r.status_code != 200:
-            print(f"❌ خطا در دانلود مدل: وضعیت HTTP {r.status_code}")
-            sys.exit(1)
+        print(f"✅ Model file already exists: {MODEL_FILENAME}")
+        return MODEL_FILENAME
+
+    print(f"⬇️ Downloading model from: {MODEL_URL}")
+    response = requests.get(MODEL_URL)
+    if response.status_code == 200:
         with open(MODEL_FILENAME, "wb") as f:
-            f.write(r.content)
-        print("✅ دانلود مدل انجام شد.")
-
-        # بررسی اندازه فایل
-        size = os.path.getsize(MODEL_FILENAME)
-        print(f"📦 اندازه فایل مدل: {size} بایت")
-        if size < 10000:  # کمتر از 10 کیلوبایت = فایل خراب
-            print("❌ فایل مدل به نظر می‌رسد خراب یا ناقص است.")
-            sys.exit(1)
-
-    except Exception as e:
-        print("❌ خطا در دانلود مدل:", e)
-        sys.exit(1)
+            f.write(response.content)
+        print(f"✅ Model downloaded successfully! File size: {os.path.getsize(MODEL_FILENAME)} bytes")
+    else:
+        print(f"❌ Failed to download model. HTTP {response.status_code}")
+        exit(1)
+    return MODEL_FILENAME
 
 
 def load_model_or_exit(path):
-    """بارگذاری مدل با مدیریت خطا."""
+    """لود مدل، با بررسی خطا"""
     try:
-        print(f"📂 در حال بارگذاری مدل از '{path}' ...")
+        print(f"📦 Loading model from {path} ...")
         model = tf.keras.models.load_model(path)
-        print("✅ مدل با موفقیت بارگذاری شد.")
+        print("✅ Model loaded successfully!")
         return model
     except Exception as e:
-        print(f"❌ خطا در بارگذاری مدل: {e}")
-        sys.exit(1)
+        print(f"❌ Error loading model: {e}")
+        exit(1)
 
 
-def preprocess_image(image_path, target_size=(224, 224)):
-    """پیش‌پردازش تصویر برای مدل."""
-    img = Image.open(image_path).convert("RGB")
-    img = img.resize(target_size)
-    img_array = np.array(img) / 255.0
-    return np.expand_dims(img_array, axis=0)
+def preprocess_image(img_path):
+    img = Image.open(img_path).convert("RGB").resize((224, 224))
+    img_array = np.expand_dims(np.array(img) / 255.0, axis=0)
+    return img_array
 
 
-def predict_image(model, image_path):
-    """پیش‌بینی کلاس تصویر."""
-    img = preprocess_image(image_path)
-    preds = model.predict(img)
-    return preds
+def predict_images(model):
+    """پیش‌بینی روی تصاویر موجود در پوشه test_images"""
+    if not os.path.exists(TEST_IMAGES_DIR):
+        print(f"⚠️ No directory named '{TEST_IMAGES_DIR}' found.")
+        return []
+
+    predictions = []
+    for filename in os.listdir(TEST_IMAGES_DIR):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            img_path = os.path.join(TEST_IMAGES_DIR, filename)
+            img_array = preprocess_image(img_path)
+            preds = model.predict(img_array)
+            predicted_class = np.argmax(preds)
+            predictions.append((filename, int(predicted_class)))
+            print(f"🖼 {filename} → class {predicted_class}")
+    return predictions
+
+
+def save_predictions(predictions):
+    """ذخیره خروجی پیش‌بینی‌ها در CSV"""
+    import pandas as pd
+    if predictions:
+        df = pd.DataFrame(predictions, columns=["image", "predicted_class"])
+        df.to_csv(OUTPUT_CSV, index=False)
+        print(f"✅ Predictions saved to {OUTPUT_CSV}")
+    else:
+        print("⚠️ No predictions to save.")
 
 
 def run_batch():
-    print("🚀 شروع اجرای batch:", datetime.utcnow().isoformat(), "UTC")
+    print(f"شروع اجرای batch: {datetime.utcnow().isoformat()} UTC")
 
-    download_model_if_needed()
-    model = load_model_or_exit(MODEL_FILENAME)
+    model_path = download_model()
+    print(f"🔍 Checking downloaded file size: {os.path.getsize(model_path)} bytes")
 
-    if not os.path.exists(IMAGE_DIR):
-        print(f"❌ پوشه تصاویر '{IMAGE_DIR}' یافت نشد.")
-        sys.exit(1)
+    model = load_model_or_exit(model_path)
 
-    image_files = [f for f in os.listdir(IMAGE_DIR) if f.lower().endswith((".jpg", ".png", ".jpeg"))]
-    if not image_files:
-        print("⚠️ هیچ تصویری برای پردازش یافت نشد.")
-        sys.exit(0)
+    predictions = predict_images(model)
+    save_predictions(predictions)
 
-    print(f"📸 تعداد تصاویر: {len(image_files)}")
-
-    results = []
-    for img_name in image_files:
-        img_path = os.path.join(IMAGE_DIR, img_name)
-        preds = predict_image(model, img_path)
-        predicted_class = np.argmax(preds)
-        confidence = float(np.max(preds))
-        results.append((img_name, predicted_class, confidence))
-        print(f"✅ {img_name}: کلاس {predicted_class} (اطمینان {confidence:.2f})")
-
-    # ذخیره در CSV
-    import csv
-    with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["filename", "predicted_class", "confidence"])
-        writer.writerows(results)
-
-    print(f"💾 نتایج در فایل '{OUTPUT_CSV}' ذخیره شدند.")
+    print("🏁 Batch completed successfully.")
 
 
 if __name__ == "__main__":

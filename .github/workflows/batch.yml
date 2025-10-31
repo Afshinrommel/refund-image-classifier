@@ -1,4 +1,4 @@
-name: Run Batch Prediction (v2)
+name: Run Batch Prediction (v3)
 
 on:
   workflow_dispatch:  # ✅ allow manual trigger

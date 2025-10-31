@@ -1,10 +1,10 @@
-name: Run Batch Prediction (v3)
+name: Run Batch Prediction (v4)
 
 on:
   workflow_dispatch:  # ✅ allow manual trigger
   schedule:
     - cron: "*/5 * * * *"  # ✅ run every 5 minutes (UTC time)
-git checkout main
+
 permissions:
   contents: write  # ✅ allow git push from Actions
 

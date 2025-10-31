@@ -10,11 +10,11 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 # ===============================
 # 🧠 CONFIGURATION SECTION
 # ===============================
-MODEL_URL = "https://drive.google.com/uc?id=10QVwxFBdz6nhqQoe-LnQSQi87e2kPRLv"  # ✅ لینک جدید مدل
+MODEL_URL = "https://drive.google.com/uc?id=10QVwxFBdz6nhqQoe-LnQSQi87e2kPRLv"
 MODEL_FILENAME = "model.h5"
 CLASS_MAP_FILENAME = "class_indices.json"
 TEST_DIR = "test_images"
-OUTPUT_FILE = "daily_predictions.csv"
+OUTPUT_DIR = "predictions"
 
 # ===============================
 # 🔽 DOWNLOAD MODEL IF NEEDED
@@ -46,7 +46,6 @@ def load_class_map():
         return None
     with open(CLASS_MAP_FILENAME, "r") as f:
         class_indices = json.load(f)
-    # تبدیل برعکس (index → class name)
     index_to_class = {v: k for k, v in class_indices.items()}
     print("✅ Loaded class mapping file.")
     return index_to_class
@@ -61,7 +60,7 @@ def predict_image(model, img_path, index_to_class):
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
-    preds = model.predict(x)
+    preds = model.predict(x, verbose=0)
     class_id = np.argmax(preds, axis=1)[0]
     confidence = float(np.max(preds))
     class_name = index_to_class[class_id] if index_to_class else str(class_id)
@@ -72,11 +71,14 @@ def predict_image(model, img_path, index_to_class):
 # 🚀 RUN BATCH PREDICTION
 # ===============================
 def run_batch():
+    """اجرای پیش‌بینی دسته‌ای روی تصاویر و ذخیره‌ی نتیجه در فایل CSV با نام زمان‌دار"""
     print(f"🕐 Starting batch run: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
 
+    # Create output directory
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
     if not os.path.exists(TEST_DIR):
-        print(f"⚠️ No directory named '{TEST_DIR}' found.")
-        raise FileNotFoundError(TEST_DIR)
+        raise FileNotFoundError(f"⚠️ No directory named '{TEST_DIR}' found.")
 
     model = load_model_or_exit(MODEL_FILENAME)
     index_to_class = load_class_map()
@@ -84,7 +86,7 @@ def run_batch():
     results = []
     for fname in os.listdir(TEST_DIR):
         fpath = os.path.join(TEST_DIR, fname)
-        if not (fname.lower().endswith(".jpg") or fname.lower().endswith(".png")):
+        if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
             continue
 
         class_id, class_name, confidence = predict_image(model, fpath, index_to_class)
@@ -97,9 +99,11 @@ def run_batch():
         print(f"🖼️ {fname} → {class_name} ({confidence:.2f})")
 
     if results:
+        timestamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+        output_path = os.path.join(OUTPUT_DIR, f"predictions_{timestamp}.csv")
         df = pd.DataFrame(results)
-        df.to_csv(OUTPUT_FILE, index=False)
-        print(f"✅ Predictions saved to {OUTPUT_FILE}")
+        df.to_csv(output_path, index=False)
+        print(f"✅ Predictions saved to {output_path}")
     else:
         print("⚠️ No images found to process.")
 
@@ -107,5 +111,5 @@ def run_batch():
 # 🏁 MAIN ENTRY
 # ===============================
 if __name__ == "__main__":
-    print(">>> Running Batch Prediction (v2.1 with updated model link) <<<")
+    print(">>> Running Batch Prediction (v3.0 — Auto Save per Minute) <<<")
     run_batch()

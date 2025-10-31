@@ -1,34 +1,63 @@
 name: Run Batch Prediction
 
 on:
-  workflow_dispatch:  # اجرای دستی از GitHub
+  workflow_dispatch:  # ✅ Manual trigger option from GitHub
   schedule:
-    - cron: '0 12 * * *'  # اجرای روزانه (UTC 12:00)
+    - cron: "*/1 * * * *"  # ✅ Run every minute (UTC time)
 
 jobs:
   run-batch:
     runs-on: ubuntu-latest
 
     steps:
+      # ============================
+      # 1️⃣ Checkout repository
+      # ============================
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ============================
+      # 2️⃣ Set up Python environment
+      # ============================
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
+      # ============================
+      # 3️⃣ Install dependencies
+      # ============================
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install tensorflow numpy pillow pandas gdown
 
+      # ============================
+      # 4️⃣ Run batch prediction
+      # ============================
       - name: Run batch prediction
         run: python main.py
 
+      # ============================
+      # 5️⃣ Upload CSV as artifact (optional)
+      # ============================
       - name: Upload predictions CSV
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: predictions
-          path: daily_predictions.csv
+          path: predictions/*.csv
+
+      # ============================
+      # 6️⃣ Commit & push new CSVs to repo
+      # ============================
+      - name: Commit and push predictions
+        if: success()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git pull --rebase
+          git add predictions/
+          timestamp=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          git commit -m "🧠 Add predictions - $timestamp" || echo "No changes to commit"
+          git push

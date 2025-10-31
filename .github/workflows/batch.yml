@@ -4,6 +4,8 @@ on:
   workflow_dispatch:  # ✅ Manual trigger option from GitHub
   schedule:
     - cron: "*/1 * * * *"  # ✅ Run every minute (UTC time)
+permissions:
+  contents: write  # ✅ Allow git push from Actions
 
 jobs:
   run-batch:

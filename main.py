@@ -1,85 +1,90 @@
 import os
+import requests
 import tensorflow as tf
 import numpy as np
-from PIL import Image
-import requests
 import pandas as pd
+from PIL import Image
 from datetime import datetime
 
 MODEL_URL = "https://drive.google.com/uc?id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX"
 MODEL_FILENAME = "model.h5"
 TEST_DIR = "test_images"
-OUTPUT_FILE = "daily_predictions.csv"
+OUTPUT_CSV = "daily_predictions.csv"
 
+# 🔹 دانلود مدل در صورت عدم وجود
 def download_model():
-    print(f"⬇️ Downloading model from: {MODEL_URL}")
-    response = requests.get(MODEL_URL)
-    with open(MODEL_FILENAME, "wb") as f:
-        f.write(response.content)
-    size = os.path.getsize(MODEL_FILENAME)
-    print(f"✅ Model downloaded successfully! File size: {size} bytes")
+    if not os.path.exists(MODEL_FILENAME):
+        print(f"⬇️ Downloading model from: {MODEL_URL}")
+        r = requests.get(MODEL_URL)
+        with open(MODEL_FILENAME, "wb") as f:
+            f.write(r.content)
+        print("✅ Model downloaded successfully! File size:", os.path.getsize(MODEL_FILENAME), "bytes")
 
+# 🔹 بارگذاری مدل
 def load_model_or_exit(path):
-    if not os.path.exists(path):
-        download_model()
-    print(f"📦 Loading model from {path} ...")
-    model = tf.keras.models.load_model(path)
-    print("✅ Model loaded successfully!")
-    return model
+    try:
+        model = tf.keras.models.load_model(path)
+        print("✅ Model loaded successfully!")
+        return model
+    except Exception as e:
+        print("❌ Failed to load model:", e)
+        exit(1)
 
-def load_images_from_folder(folder):
-    if not os.path.exists(folder):
-        print(f"⚠️ No directory named '{folder}' found.")
-        return []
-    images = []
-    filenames = []
-    for filename in os.listdir(folder):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            img = Image.open(os.path.join(folder, filename)).resize((224, 224))
-            img = np.array(img) / 255.0
-            images.append(img)
-            filenames.append(filename)
-    return np.array(images), filenames
+# 🔹 خواندن لیست کلاس‌ها
+def get_class_names():
+    if not os.path.exists(TEST_DIR):
+        print(f"⚠️ No directory named '{TEST_DIR}' found.")
+        exit(1)
+    class_names = sorted(os.listdir(TEST_DIR))
+    print(f"📂 Found {len(class_names)} classes: {class_names[:10]} ...")
+    return class_names
 
-def get_class_names(model, test_dir):
-    # سعی می‌کند نام کلاس‌ها را از خود مدل بخواند
-    if hasattr(model, "class_names"):
-        return model.class_names
-    # اگر در مدل نبود، از زیرپوشه‌های test_images می‌گیرد
-    elif os.path.isdir(test_dir):
-        subdirs = sorted([d for d in os.listdir(test_dir) if os.path.isdir(os.path.join(test_dir, d))])
-        if subdirs:
-            print(f"📁 Found class folders: {subdirs}")
-            return subdirs
-    # در غیر اینصورت عددی برمی‌گرداند
-    print("⚠️ Could not detect class names. Using numeric labels instead.")
-    return None
+# 🔹 پیش‌بینی برای یک تصویر
+def predict_image(model, img_path, class_names):
+    img = Image.open(img_path).convert("RGB").resize((224, 224))
+    img_array = np.expand_dims(np.array(img) / 255.0, axis=0)
+    preds = model.predict(img_array)
+    class_idx = np.argmax(preds[0])
+    class_name = class_names[class_idx] if class_idx < len(class_names) else f"Unknown({class_idx})"
+    confidence = float(np.max(preds[0]))
+    return class_name, confidence
 
-def save_predictions(filenames, predictions):
-    df = pd.DataFrame({"filename": filenames, "prediction": predictions})
-    df.to_csv(OUTPUT_FILE, index=False)
-    print(f"📄 Predictions saved to {OUTPUT_FILE}")
+# 🔹 ذخیره نتایج در CSV
+def save_predictions(predictions):
+    df = pd.DataFrame(predictions)
+    df.to_csv(OUTPUT_CSV, index=False)
+    print(f"📄 Saved predictions to {OUTPUT_CSV}")
 
+# 🔹 اجرای Batch Prediction
 def run_batch():
+    print(">>> Running UPDATED main.py version 1.3 <<<")
     print(f"شروع اجرای batch: {datetime.utcnow().isoformat()} UTC")
+
+    download_model()
     model = load_model_or_exit(MODEL_FILENAME)
-    class_names = get_class_names(model, TEST_DIR)
+    class_names = get_class_names()
 
-    images, filenames = load_images_from_folder(TEST_DIR)
-    if len(images) == 0:
-        print("⚠️ No images found to process.")
-        return
+    predictions = []
+    for cls in class_names:
+        cls_dir = os.path.join(TEST_DIR, cls)
+        if not os.path.isdir(cls_dir):
+            continue
 
-    preds = model.predict(images)
-    predicted_classes = np.argmax(preds, axis=1)
+        for fname in os.listdir(cls_dir):
+            if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                continue
+            fpath = os.path.join(cls_dir, fname)
+            pred_label, conf = predict_image(model, fpath, class_names)
+            predictions.append({
+                "timestamp": datetime.utcnow().isoformat(),
+                "true_class": cls,
+                "file_name": fname,
+                "predicted_class": pred_label,
+                "confidence": round(conf, 4)
+            })
 
-    if class_names:
-        predicted_labels = [class_names[i] for i in predicted_classes]
-    else:
-        predicted_labels = predicted_classes.tolist()
-
-    save_predictions(filenames, predicted_labels)
+    save_predictions(predictions)
+    print(f"✅ Batch completed — {len(predictions)} images processed.")
 
 if __name__ == "__main__":
-    print(">>> Running UPDATED main.py version 1.3 (class names supported) <<<")
     run_batch()

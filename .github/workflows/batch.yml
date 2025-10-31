@@ -1,78 +1,46 @@
 name: Run Batch Prediction
 
 on:
-  workflow_dispatch:  # ✅ allow manual trigger
+  workflow_dispatch:      # allows manual trigger from the Actions tab
   schedule:
-    - cron: "*/5 * * * *"  # ✅ run every 5 minutes (UTC time)
-
-permissions:
-  contents: write  # ✅ allow git push from Actions
+    - cron: "*/5 * * * *"  # runs every 5 minutes (UTC time)
 
 jobs:
   run-batch:
     runs-on: ubuntu-latest
 
     steps:
-      # ============================
-      # 1️⃣ Checkout repository
-      # ============================
+      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ✅ ensure full history for rebase
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ============================
-      # 2️⃣ Set up Python
-      # ============================
+      # Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
-      # ============================
-      # 3️⃣ Install dependencies
-      # ============================
+      # Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install tensorflow numpy pillow pandas gdown
 
-      # ============================
-      # 4️⃣ Run batch prediction
-      # ============================
+      # Run the batch prediction script
       - name: Run batch prediction
         run: python main.py
 
-      # ============================
-      # 5️⃣ Upload CSV as artifact (optional)
-      # ============================
-      - name: Upload predictions CSV
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: predictions
-          path: predictions/*.csv
-
-      # ============================
-      # 6️⃣ Commit & push predictions safely
-      # ============================
+      # Commit new predictions to the repo
       - name: Commit and push predictions
-        if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # make sure we’re on main and up to date
-          git fetch origin main
-          git checkout main
-          git pull --rebase origin main || true
-
-          # add and commit new prediction CSVs
-          git add predictions/
-          timestamp=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          git commit -m "🧠 Add predictions - $timestamp" || echo "No changes to commit"
-
-          # push safely back to GitHub
-          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
+          git add predictions/*.csv || true
+          if git diff --cached --quiet; then
+            echo "No new CSVs to commit."
+          else
+            git commit -m "🧠 Add predictions - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            git pull --rebase origin main || true
+            git push origin main || true

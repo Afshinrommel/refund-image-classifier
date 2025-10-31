@@ -1,90 +1,111 @@
 import os
-import requests
+import json
+import time
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-from PIL import Image
-from datetime import datetime
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
-MODEL_URL = "https://drive.google.com/uc?id=1QgatECmfFze9sSoqbuIo1IDwmU1csCXX"
+# ===============================
+# 🧠 CONFIGURATION SECTION
+# ===============================
+MODEL_URL = "https://drive.google.com/uc?id=10QVwxFBdz6nhqQoe-LnQSQi87e2kPRLv"  # ✅ لینک جدید مدل
 MODEL_FILENAME = "model.h5"
+CLASS_MAP_FILENAME = "class_indices.json"
 TEST_DIR = "test_images"
-OUTPUT_CSV = "daily_predictions.csv"
+OUTPUT_FILE = "daily_predictions.csv"
 
-# 🔹 دانلود مدل در صورت عدم وجود
-def download_model():
-    if not os.path.exists(MODEL_FILENAME):
-        print(f"⬇️ Downloading model from: {MODEL_URL}")
-        r = requests.get(MODEL_URL)
-        with open(MODEL_FILENAME, "wb") as f:
-            f.write(r.content)
-        print("✅ Model downloaded successfully! File size:", os.path.getsize(MODEL_FILENAME), "bytes")
+# ===============================
+# 🔽 DOWNLOAD MODEL IF NEEDED
+# ===============================
+def download_file(url, output_path):
+    """دانلود فایل مدل از Google Drive"""
+    import gdown
+    print(f"⬇️ Downloading model from: {url}")
+    gdown.download(url, output_path, quiet=False)
+    print(f"✅ Model downloaded successfully: {output_path}")
 
-# 🔹 بارگذاری مدل
+# ===============================
+# 🧩 LOAD MODEL & CLASSES
+# ===============================
 def load_model_or_exit(path):
-    try:
-        model = tf.keras.models.load_model(path)
-        print("✅ Model loaded successfully!")
-        return model
-    except Exception as e:
-        print("❌ Failed to load model:", e)
-        exit(1)
+    """لود مدل از فایل یا دانلود در صورت نبود"""
+    if not os.path.exists(path):
+        print("⚠️ Model not found locally. Downloading...")
+        download_file(MODEL_URL, path)
+    print("📦 Loading model ...")
+    model = tf.keras.models.load_model(path)
+    print("✅ Model loaded successfully!")
+    return model
 
-# 🔹 خواندن لیست کلاس‌ها
-def get_class_names():
+def load_class_map():
+    """لود نگاشت نام کلاس‌ها"""
+    if not os.path.exists(CLASS_MAP_FILENAME):
+        print("⚠️ class_indices.json not found — classes will show as numbers.")
+        return None
+    with open(CLASS_MAP_FILENAME, "r") as f:
+        class_indices = json.load(f)
+    # تبدیل برعکس (index → class name)
+    index_to_class = {v: k for k, v in class_indices.items()}
+    print("✅ Loaded class mapping file.")
+    return index_to_class
+
+# ===============================
+# 🔍 PREDICTION FUNCTION
+# ===============================
+def predict_image(model, img_path, index_to_class):
+    """پیش‌بینی یک تصویر"""
+    img = image.load_img(img_path, target_size=(224, 224))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+
+    preds = model.predict(x)
+    class_id = np.argmax(preds, axis=1)[0]
+    confidence = float(np.max(preds))
+    class_name = index_to_class[class_id] if index_to_class else str(class_id)
+
+    return class_id, class_name, confidence
+
+# ===============================
+# 🚀 RUN BATCH PREDICTION
+# ===============================
+def run_batch():
+    print(f"🕐 Starting batch run: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
+
     if not os.path.exists(TEST_DIR):
         print(f"⚠️ No directory named '{TEST_DIR}' found.")
-        exit(1)
-    class_names = sorted(os.listdir(TEST_DIR))
-    print(f"📂 Found {len(class_names)} classes: {class_names[:10]} ...")
-    return class_names
+        raise FileNotFoundError(TEST_DIR)
 
-# 🔹 پیش‌بینی برای یک تصویر
-def predict_image(model, img_path, class_names):
-    img = Image.open(img_path).convert("RGB").resize((224, 224))
-    img_array = np.expand_dims(np.array(img) / 255.0, axis=0)
-    preds = model.predict(img_array)
-    class_idx = np.argmax(preds[0])
-    class_name = class_names[class_idx] if class_idx < len(class_names) else f"Unknown({class_idx})"
-    confidence = float(np.max(preds[0]))
-    return class_name, confidence
-
-# 🔹 ذخیره نتایج در CSV
-def save_predictions(predictions):
-    df = pd.DataFrame(predictions)
-    df.to_csv(OUTPUT_CSV, index=False)
-    print(f"📄 Saved predictions to {OUTPUT_CSV}")
-
-# 🔹 اجرای Batch Prediction
-def run_batch():
-    print(">>> Running UPDATED main.py version 1.3 <<<")
-    print(f"شروع اجرای batch: {datetime.utcnow().isoformat()} UTC")
-
-    download_model()
     model = load_model_or_exit(MODEL_FILENAME)
-    class_names = get_class_names()
+    index_to_class = load_class_map()
 
-    predictions = []
-    for cls in class_names:
-        cls_dir = os.path.join(TEST_DIR, cls)
-        if not os.path.isdir(cls_dir):
+    results = []
+    for fname in os.listdir(TEST_DIR):
+        fpath = os.path.join(TEST_DIR, fname)
+        if not (fname.lower().endswith(".jpg") or fname.lower().endswith(".png")):
             continue
 
-        for fname in os.listdir(cls_dir):
-            if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
-                continue
-            fpath = os.path.join(cls_dir, fname)
-            pred_label, conf = predict_image(model, fpath, class_names)
-            predictions.append({
-                "timestamp": datetime.utcnow().isoformat(),
-                "true_class": cls,
-                "file_name": fname,
-                "predicted_class": pred_label,
-                "confidence": round(conf, 4)
-            })
+        class_id, class_name, confidence = predict_image(model, fpath, index_to_class)
+        results.append({
+            "filename": fname,
+            "predicted_class_id": class_id,
+            "predicted_class_name": class_name,
+            "confidence": round(confidence, 4)
+        })
+        print(f"🖼️ {fname} → {class_name} ({confidence:.2f})")
 
-    save_predictions(predictions)
-    print(f"✅ Batch completed — {len(predictions)} images processed.")
+    if results:
+        df = pd.DataFrame(results)
+        df.to_csv(OUTPUT_FILE, index=False)
+        print(f"✅ Predictions saved to {OUTPUT_FILE}")
+    else:
+        print("⚠️ No images found to process.")
 
+# ===============================
+# 🏁 MAIN ENTRY
+# ===============================
 if __name__ == "__main__":
+    print(">>> Running Batch Prediction (v2.1 with updated model link) <<<")
     run_batch()

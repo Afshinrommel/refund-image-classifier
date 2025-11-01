@@ -6,4 +6,6 @@ tensorflow
 numpy
 pillow
 requests
+streamlit
+
 

@@ -1,0 +1,22 @@
+git add main.py
+git commit -m "🔄 Update main.py to auto-download test images"
+git pull --rebase origin main
+git push origin main
+
+
+
+git add dashboard.py
+git commit -m "🔄 Update main.py to add_dashboard.py test images"
+git pull --rebase origin main
+git push origin main
+
+
+
+git pull --rebase origin main
+git push origin main
+
+
+dashboardpyappurloptionaldashboardpy-2g7j2kvs3ev27bt6juyuzxapp
+
+
+https://github.com/Afshinrommel/refund-image-classifier/blob/main/dashboard.py

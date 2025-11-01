@@ -7,5 +7,6 @@ numpy
 pillow
 requests
 streamlit
+flask
 
 

@@ -43,9 +43,13 @@ app = Flask(__name__)
 def home():
     return jsonify({
         "message": "Refund Image Classifier API is running!",
-        "usage": "POST /predict with a file field named 'image'"
+        "usage": "POST /predict with a file field named 'image'",
+        "ui": "/upload"
     })
 
+# ===================================
+# PREDICTION ENDPOINT (POST)
+# ===================================
 @app.route("/predict", methods=["POST"])
 def predict():
     if 'image' not in request.files:
@@ -67,6 +71,125 @@ def predict():
         "confidence": confidence
     })
 
+# ===================================
+# HTML UPLOAD PAGE (GET)
+# ===================================
+@app.route("/upload", methods=["GET"])
+def upload_page():
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Refund Image Classifier</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background-color: #f8f9fa;
+            }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                text-align: center;
+                width: 350px;
+            }
+            input[type=file] {
+                margin: 15px 0;
+            }
+            button {
+                background-color: #007bff;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            img {
+                width: 200px;
+                margin-top: 10px;
+                border-radius: 10px;
+                display: none;
+            }
+            .result {
+                margin-top: 20px;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Refund Image Classifier</h2>
+            <form id="uploadForm">
+                <input type="file" name="image" id="imageInput" accept="image/*" required>
+                <br>
+                <img id="preview" alt="Image Preview">
+                <br>
+                <button type="submit">Predict</button>
+            </form>
+            <div class="result" id="result"></div>
+        </div>
+
+        <script>
+        const form = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+        const preview = document.getElementById('preview');
+        const imageInput = document.getElementById('imageInput');
+
+        // Show image preview
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // Handle form submit
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            resultDiv.innerHTML = "⏳ Predicting...";
+
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.error) {
+                    resultDiv.innerHTML = "❌ " + data.error;
+                } else {
+                    resultDiv.innerHTML = `✅ <b>${data.predicted_class}</b><br>Confidence: ${(data.confidence * 100).toFixed(2)}%`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = "⚠️ Error: " + err.message;
+            }
+        });
+        </script>
+    </body>
+    </html>
+    """
+
+# ===================================
+# MAIN ENTRY POINT
+# ===================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

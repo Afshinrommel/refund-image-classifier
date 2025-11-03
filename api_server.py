@@ -1,4 +1,5 @@
 import os
+import io
 import json
 from flask import Flask, request, jsonify
 import tensorflow as tf
@@ -56,7 +57,14 @@ def predict():
         return jsonify({"error": "No image uploaded"}), 400
 
     img_file = request.files['image']
-    img = image.load_img(img_file, target_size=(224, 224))
+    if img_file.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+
+    try:
+        img = image.load_img(io.BytesIO(img_file.read()), target_size=(224, 224))
+    except Exception as e:
+        return jsonify({"error": f"Failed to read image: {str(e)}"}), 400
+
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)

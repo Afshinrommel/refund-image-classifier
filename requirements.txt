@@ -8,5 +8,6 @@ pillow
 requests
 streamlit
 flask
+gdown
 
 

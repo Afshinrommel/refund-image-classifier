@@ -120,3 +120,102 @@ def predict():
             return jsonify({"error": f"Failed to upload to Drive: {str(e)}"}), 500
 
     # Predict
+    try:
+        img = image.load_img(local_path, target_size=(224, 224))
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+
+        preds = model.predict(x)
+        class_id = np.argmax(preds)
+        confidence = float(np.max(preds))
+        class_name = index_to_class[class_id] if index_to_class else str(class_id)
+    except Exception as e:
+        return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
+    finally:
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
+    return jsonify({
+        "predicted_class": class_name,
+        "confidence": confidence,
+        "uploaded_to": file_url
+    })
+
+# ===================================
+# HTML UPLOAD PAGE
+# ===================================
+@app.route("/upload", methods=["GET"])
+def upload_page():
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Refund Image Classifier</title>
+        <style>
+            body { font-family: Arial; display:flex; flex-direction: column; align-items:center; justify-content:center; height:100vh; background:#f8f9fa;}
+            .container { background:white; padding:30px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); text-align:center; width:350px;}
+            input[type=file] { margin:15px 0; }
+            button { background:#007bff; color:white; padding:10px 20px; border:none; border-radius:8px; cursor:pointer; }
+            button:hover { background:#0056b3; }
+            img { width:200px; margin-top:10px; border-radius:10px; display:none; }
+            .result { margin-top:20px; font-weight:bold; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Refund Image Classifier</h2>
+            <form id="uploadForm">
+                <input type="file" name="image" id="imageInput" accept="image/*" required><br>
+                <img id="preview" alt="Image Preview"><br>
+                <button type="submit">Predict</button>
+            </form>
+            <div class="result" id="result"></div>
+        </div>
+
+        <script>
+        const form = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+        const preview = document.getElementById('preview');
+        const imageInput = document.getElementById('imageInput');
+
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => { preview.src = e.target.result; preview.style.display = 'block'; };
+                reader.readAsDataURL(file);
+                resultDiv.innerHTML = "";
+            } else { preview.style.display = 'none'; }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            resultDiv.innerHTML = "⏳ Predicting...";
+
+            try {
+                const response = await fetch("/predict", { method:"POST", body:formData });
+                const data = await response.json();
+                if (data.error) { resultDiv.innerHTML = "❌ "+data.error; }
+                else {
+                    resultDiv.innerHTML = `✅ <b>${data.predicted_class}</b><br>Confidence: ${(data.confidence*100).toFixed(2)}%<br>` +
+                                          (data.uploaded_to ? `<a href="${data.uploaded_to}" target="_blank">📂 View in Google Drive</a>` : "");
+                }
+            } catch (err) {
+                resultDiv.innerHTML = "⚠️ Error: "+err.message;
+            }
+        });
+        </script>
+    </body>
+    </html>
+    """
+
+# ===================================
+# MAIN
+# ===================================
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

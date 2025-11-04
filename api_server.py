@@ -1,5 +1,4 @@
 import os
-import io
 import json
 from flask import Flask, request, jsonify, redirect, url_for
 import tensorflow as tf
@@ -27,14 +26,14 @@ if os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"):
         f.write(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
     print("✅ service_account.json created from environment variable")
 else:
-    print("⚠️ Warning: GOOGLE_SERVICE_ACCOUNT_JSON not found! Drive upload will fail.")
+    print("⚠️ GOOGLE_SERVICE_ACCOUNT_JSON not found. Drive upload will fail!")
 
 # ===================================
-# DOWNLOAD MODEL (if missing)
+# DOWNLOAD MODEL
 # ===================================
 def ensure_model():
     if not os.path.exists(MODEL_FILENAME):
-        print("⬇️ Downloading model from Google Drive...")
+        print("⬇️ Downloading model...")
         gdown.download(MODEL_URL, MODEL_FILENAME, quiet=False)
     print("✅ Model ready:", MODEL_FILENAME)
 
@@ -57,7 +56,7 @@ else:
 def setup_drive():
     gauth = GoogleAuth()
     try:
-        gauth.LoadCredentialsFile("service_account.json")
+        gauth.LoadServiceConfigFile("service_account.json")  # Use service account
     except Exception as e:
         print(f"⚠️ Failed to load Drive credentials: {e}")
         return None
@@ -68,14 +67,14 @@ drive = setup_drive()
 if drive:
     print("✅ Google Drive connected")
 else:
-    print("⚠️ Google Drive not connected — uploads will fail")
+    print("⚠️ Google Drive not connected. Uploads will fail.")
 
 # ===================================
 # FLASK APP
 # ===================================
 app = Flask(__name__)
 
-# Default route redirects to upload page
+# Default route → upload page
 @app.route("/", methods=["GET"])
 def home():
     return redirect(url_for('upload_page'))
@@ -90,7 +89,7 @@ def info():
     })
 
 # ===================================
-# PREDICTION + UPLOAD TO DRIVE
+# PREDICT + UPLOAD
 # ===================================
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -106,7 +105,7 @@ def predict():
     local_path = os.path.join("uploads", filename)
     img_file.save(local_path)
 
-    # Upload to Google Drive
+    # Upload to Drive
     file_url = None
     if drive:
         try:

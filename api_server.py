@@ -7,13 +7,17 @@ import numpy as np
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
+from werkzeug.utils import secure_filename
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 # ===================================
 # CONFIGURATION
 # ===================================
-MODEL_URL = "https://drive.google.com/uc?id=10QVwxFBdz6nhqQoe-LnQSQi87e2kPRLv"  # Replace with your model URL
+MODEL_URL = "https://drive.google.com/uc?id=10QVwxFBdz6nhqQoe-LnQSQi87e2kPRLv"  # your model file
 MODEL_FILENAME = "model.h5"
 CLASS_MAP_FILENAME = "class_indices.json"
+DRIVE_FOLDER_ID = "1owlRknDThdlDVwOzpFmc_tqS5qRTXS5J"  # your Drive folder ID
 
 # ===================================
 # DOWNLOAD MODEL (if missing)
@@ -28,7 +32,9 @@ ensure_model()
 model = tf.keras.models.load_model(MODEL_FILENAME)
 print("✅ Model loaded successfully")
 
-# Load class map
+# ===================================
+# LOAD CLASS MAP
+# ===================================
 if os.path.exists(CLASS_MAP_FILENAME):
     with open(CLASS_MAP_FILENAME) as f:
         index_to_class = {v: k for k, v in json.load(f).items()}
@@ -36,16 +42,29 @@ else:
     index_to_class = None
 
 # ===================================
+# GOOGLE DRIVE SETUP
+# ===================================
+def setup_drive():
+    gauth = GoogleAuth()
+    # expects your JSON credentials file in the same directory
+    gauth.LoadCredentialsFile("service_account.json")
+    drive = GoogleDrive(gauth)
+    return drive
+
+drive = setup_drive()
+print("✅ Google Drive connected")
+
+# ===================================
 # FLASK APP
 # ===================================
 app = Flask(__name__)
 
-# Default route → redirects to upload page
+# Default route redirects to upload page
 @app.route("/", methods=["GET"])
 def home():
     return redirect(url_for('upload_page'))
 
-# Info route (optional)
+# Optional info route
 @app.route("/info", methods=["GET"])
 def info():
     return jsonify({
@@ -55,7 +74,7 @@ def info():
     })
 
 # ===================================
-# PREDICTION ENDPOINT
+# PREDICTION + UPLOAD TO DRIVE
 # ===================================
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -66,23 +85,48 @@ def predict():
     if img_file.filename == "":
         return jsonify({"error": "Empty filename"}), 400
 
+    # Save local temp copy
+    os.makedirs("uploads", exist_ok=True)
+    filename = secure_filename(img_file.filename)
+    local_path = os.path.join("uploads", filename)
+    img_file.save(local_path)
+
+    # Upload to Google Drive
     try:
-        img = image.load_img(io.BytesIO(img_file.read()), target_size=(224, 224))
+        file_drive = drive.CreateFile({
+            'title': filename,
+            'parents': [{'id': DRIVE_FOLDER_ID}]
+        })
+        file_drive.SetContentFile(local_path)
+        file_drive.Upload()
+        file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+        file_url = f"https://drive.google.com/uc?id={file_drive['id']}"
+        print(f"📤 Uploaded to Drive: {file_url}")
     except Exception as e:
-        return jsonify({"error": f"Failed to read image: {str(e)}"}), 400
+        return jsonify({"error": f"Failed to upload to Drive: {str(e)}"}), 500
 
-    x = image.img_to_array(img)
-    x = np.expand_dims(x, axis=0)
-    x = preprocess_input(x)
+    # Predict
+    try:
+        img = image.load_img(local_path, target_size=(224, 224))
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
 
-    preds = model.predict(x)
-    class_id = np.argmax(preds)
-    confidence = float(np.max(preds))
-    class_name = index_to_class[class_id] if index_to_class else str(class_id)
+        preds = model.predict(x)
+        class_id = np.argmax(preds)
+        confidence = float(np.max(preds))
+        class_name = index_to_class[class_id] if index_to_class else str(class_id)
+    except Exception as e:
+        return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
+    finally:
+        # Clean up local file
+        if os.path.exists(local_path):
+            os.remove(local_path)
 
     return jsonify({
         "predicted_class": class_name,
-        "confidence": confidence
+        "confidence": confidence,
+        "uploaded_to": file_url
     })
 
 # ===================================
@@ -160,7 +204,7 @@ def upload_page():
         const preview = document.getElementById('preview');
         const imageInput = document.getElementById('imageInput');
 
-        // Show image preview
+        // Preview selected image
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -170,6 +214,7 @@ def upload_page():
                     preview.style.display = 'block';
                 };
                 reader.readAsDataURL(file);
+                resultDiv.innerHTML = "";
             } else {
                 preview.style.display = 'none';
             }
@@ -190,7 +235,7 @@ def upload_page():
                 if (data.error) {
                     resultDiv.innerHTML = "❌ " + data.error;
                 } else {
-                    resultDiv.innerHTML = `✅ <b>${data.predicted_class}</b><br>Confidence: ${(data.confidence * 100).toFixed(2)}%`;
+                    resultDiv.innerHTML = `✅ <b>${data.predicted_class}</b><br>Confidence: ${(data.confidence * 100).toFixed(2)}%<br><a href="${data.uploaded_to}" target="_blank">📂 View in Google Drive</a>`;
                 }
             } catch (err) {
                 resultDiv.innerHTML = "⚠️ Error: " + err.message;

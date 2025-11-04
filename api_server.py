@@ -1,7 +1,7 @@
 import os
 import io
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, url_for
 import tensorflow as tf
 import numpy as np
 from tensorflow.keras.preprocessing import image
@@ -40,8 +40,14 @@ else:
 # ===================================
 app = Flask(__name__)
 
+# Default route → redirects to upload page
 @app.route("/", methods=["GET"])
 def home():
+    return redirect(url_for('upload_page'))
+
+# Info route (optional)
+@app.route("/info", methods=["GET"])
+def info():
     return jsonify({
         "message": "Refund Image Classifier API is running!",
         "usage": "POST /predict with a file field named 'image'",
@@ -49,7 +55,7 @@ def home():
     })
 
 # ===================================
-# PREDICTION ENDPOINT (POST)
+# PREDICTION ENDPOINT
 # ===================================
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -80,7 +86,7 @@ def predict():
     })
 
 # ===================================
-# HTML UPLOAD PAGE (GET)
+# HTML UPLOAD PAGE
 # ===================================
 @app.route("/upload", methods=["GET"])
 def upload_page():

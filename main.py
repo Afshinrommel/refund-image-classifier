@@ -17,8 +17,9 @@ CLASS_MAP_FILENAME = "class_indices.json"
 
 # ✅ Shared Google Drive folder (with test images)
 # -> share the folder as "Anyone with the link" and replace the ID below
-TEST_FOLDER_URL = "https://drive.google.com/drive/folders/1owlRknDThdlDVwOzpFmc_tqS5qRTXS5J"
+TEST_FOLDER_URL = "https://drive.google.com/drive/folders/1VUYS-Ldx--bbSbQDoJ5XRj-nFV-aKKnc?usp=drive_link"
 TEST_DIR = "test_images"
+
 
 PREDICTION_DIR = "predictions"
 os.makedirs(PREDICTION_DIR, exist_ok=True)
@@ -27,7 +28,7 @@ os.makedirs(PREDICTION_DIR, exist_ok=True)
 # 🔽 DOWNLOAD TEST IMAGES
 # ===============================
 def download_test_images():
-    """Download test images from Google Drive folder."""
+    '''Download test images from Google Drive folder.'''
     print("⬇️ Downloading latest test images from Google Drive...")
     gdown.download_folder(url=TEST_FOLDER_URL, output=TEST_DIR, quiet=False, use_cookies=False)
     print("✅ Test images downloaded!")
@@ -36,7 +37,7 @@ def download_test_images():
 # 🧩 LOAD MODEL & CLASSES
 # ===============================
 def download_file(url, output_path):
-    """Download model if missing."""
+    '''Download model if missing.'''
     import gdown
     print(f"⬇️ Downloading model from: {url}")
     gdown.download(url, output_path, quiet=False)

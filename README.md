@@ -1,15 +1,17 @@
 # refund-image-classifier
 
-این مخزن یک نمونه آماده برای اجرای خودکار **پیش‌بینی دسته‌بندی تصاویر بازگشتی** با استفاده از GitHub Actions است.
+This repository is a ready-made example for automated image classification prediction using GitHub Actions.
 
-## محتوای مخزن
-- `main.py` : اسکریپتی که تصاویر جدید را در مسیر `caltech_split/val/` پردازش می‌کند و نتایج را در `daily_predictions.csv` ذخیره می‌کند (append).
-- `requirements.txt` : وابستگی‌های لازم.
-- `.github/workflows/daily-run.yml` : workflow برای اجرای خودکار هر شب ساعت 21:00 UTC.
-- **توجه:** فایل مدل `caltech_model.h5` داخل این ZIP قرار ندارد (حجم مدل بزرگ است). لطفاً فایل مدل را بعد از آپلود این repo، دستی در ریشه‌ی ریپازیتوری قرار دهید.
+Repository Contents
 
-## ساختار مورد انتظار داده‌ها
-```
+main.py: A script that processes new images in the caltech_split/val/ directory and appends the results to daily_predictions.csv.
+
+requirements.txt: The required dependencies.
+
+.github/workflows/daily-run.yml: A workflow that runs automatically every night at 21:00 UTC.
+
+Note: The model file caltech_model.h5 is not included in this ZIP (the model is large). Please upload the model file manually into the root of the repository after pushing this repo.
+ا
 caltech_split/
   └─ val/
       ├─ airplanes/
@@ -19,31 +21,48 @@ caltech_split/
       └─ ...
 ```
 
-هر زیرپوشه در `caltech_split/val/` یک کلاس درنظر گرفته می‌شود.
+Each subfolder inside caltech_split/val/ is considered one class.
+Quick Setup (Local)
 
-## راه‌اندازی سریع (محلی)
-1. مدل `caltech_model.h5` را در ریشه repo قرار دهید.
-2. پوشه‌ی داده‌ها را مطابق ساختار بالا قرار دهید.
-3. محیط پایتون بسازید و وابستگی‌ها را نصب کنید:
+
+Place the caltech_model.h5 model file in the root of the repository.
+
+
+Arrange the dataset folder according to the structure shown above.
+
+
+Create a Python environment and install the dependencies:
+
+
 ```bash
 pip install -r requirements.txt
 ```
-4. اجرا:
-```bash
 python main.py
-```
+Setup on GitHub
+Create a new repository and push the contents of this ZIP.
 
-## راه‌اندازی در GitHub
-1. یک ریپازیتوری جدید ایجاد کنید و محتویات این ZIP را push کنید.
-2. فایل مدل `caltech_model.h5` را به ریشه ریپازیتوری اضافه کنید (از طریق Git LFS اگر مدل بزرگ‌تر از محدودیت GitHub است).
-3. در ریپازیتوری به تب **Actions** بروید؛ workflow `Daily Batch Prediction` هر شب در ساعت 21:00 UTC اجرا خواهد شد.
-4. پس از اجرا، فایل خروجی `daily_predictions.csv` به‌عنوان artifact در بخش اجرای هر workflow در دسترس خواهد بود.
+Add the caltech_model.h5 model file to the root of the repository (use Git LFS if the model is larger than GitHub’s limit).
 
-## اجرای دستی workflow
-در تب **Actions** روی workflow کلیک کنید و دکمه **Run workflow** را بزنید (در GitHub امکان اجرای دستی وجود دارد).
+In the repository, go to the Actions tab; the Daily Batch Prediction workflow will run automatically every night at 21:00 UTC.
 
-## نکات و پیشنهادها
-- اگر مدل خیلی بزرگ است، از Git LFS یا از آپلود مدل در Google Drive / S3 استفاده کنید و کد را برای دانلود مدل تغییر دهید.
-- برای تولید لاگ دقیق‌تر می‌توانید logging اضافه کنید یا خروجی را به یک دیتابیس ارسال کنید.
+After execution, the output file daily_predictions.csv will be available as an artifact in each workflow run.
+
+Manual Workflow Execution
+In the Actions tab, click the workflow and press Run workflow (GitHub allows manual execution).
+
+Notes and Recommendations
+If the model is very large, use Git LFS or upload the model to Google Drive / S3 and modify the code to download it.
+
+To generate more detailed logs, you can add logging or send output to a database.
+
+If you want to save results daily in a separate table, you can modify main.py so that the output filename includes the date.
+
+
+
+
+
+
+
+
 - اگر می‌خواهید نتایج را به صورت روزانه در یک جدول جداگانه ذخیره کنید، می‌توان main.py را طوری تغییر داد که نام فایل خروجی شامل تاریخ باشد.
 

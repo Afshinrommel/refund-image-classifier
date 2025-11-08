@@ -1,0 +1,12 @@
+filename,customer_name,predicted_class_name,confidence,timestamp
+guitar_Alice_12345.png,guitar_Alice_12345.png,electric_guitar,0.9543,2025-11-08 18:37:23 UTC
+test2.jpg,test2.jpg,Faces,1.0,2025-11-08 18:37:23 UTC
+cup_2_Bob_67890.png,cup,cup,1.0,2025-11-08 18:37:23 UTC
+image_0001 (3).jpg,image_0001 (3).jpg,Motorbikes,1.0,2025-11-08 18:37:23 UTC
+image_0021.jpg,image_0021.jpg,BACKGROUND_Google,1.0,2025-11-08 18:37:23 UTC
+test1.jpg,test1.jpg,Faces,1.0,2025-11-08 18:37:23 UTC
+laptop_Alice_12345.png,laptop_Alice_12345.png,laptop,1.0,2025-11-08 18:37:24 UTC
+image_0007.jpg,image_0007.jpg,Leopards,0.991,2025-11-08 18:37:24 UTC
+image_0001 (1).jpg,image_0001 (1).jpg,airplanes,1.0,2025-11-08 18:37:24 UTC
+watch_1_Bob_67890.png,watch,watch,1.0,2025-11-08 18:37:24 UTC
+image_0013.jpg,image_0013.jpg,Leopards,0.9965,2025-11-08 18:37:24 UTC

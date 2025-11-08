@@ -65,13 +65,6 @@ else:
 # ======================================================
 # GOOGLE OAUTH2 AUTHORIZATION
 # ======================================================
-#def get_flow():
-#    return Flow.from_client_secrets_file(
-#        CLIENT_SECRET_FILE,
-#        scopes=SCOPES,
-#        redirect_uri=url_for("oauth2callback", _external=True),
-#    )
-
 def get_flow():
     return Flow.from_client_secrets_file(
         CLIENT_SECRET_FILE,
@@ -79,13 +72,11 @@ def get_flow():
         redirect_uri="http://localhost:5000/oauth2callback",  # ✅ force localhost
     )
 
-
 @app.route("/authorize")
 def authorize():
     flow = get_flow()
     auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
     return redirect(auth_url)
-
 
 @app.route("/oauth2callback")
 def oauth2callback():
@@ -137,16 +128,105 @@ def home():
 @app.route("/upload", methods=["GET"])
 def upload_page():
     return """
-    <html>
-    <body style="font-family:sans-serif; text-align:center;">
-        <h2>Refund Image Classifier (Local)</h2>
-        <form id="form" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*" required><br><br>
-            <button type="button" onclick="predict()">Predict</button>
-            <button type="button" onclick="uploadToDrive()">Upload to Drive</button>
-        </form>
-        <pre id="result"></pre>
-        <p><a href="/authorize">Authorize Google Drive</a></p>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Refund Image Classifier</title>
+        <style>
+            body {
+                font-family: 'Poppins', sans-serif;
+                background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+                color: #fff;
+                margin: 0;
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .card {
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 20px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+                padding: 40px 50px;
+                text-align: center;
+                max-width: 400px;
+                width: 90%;
+                backdrop-filter: blur(10px);
+                animation: fadeIn 1.2s ease-in-out;
+            }
+            @keyframes fadeIn {
+                from {opacity: 0; transform: translateY(20px);}
+                to {opacity: 1; transform: translateY(0);}
+            }
+            h2 {
+                margin-bottom: 20px;
+                font-size: 1.8em;
+                color: #ffce00;
+            }
+            input[type="file"] {
+                border: 2px dashed #888;
+                border-radius: 12px;
+                padding: 15px;
+                width: 100%;
+                background: rgba(255, 255, 255, 0.05);
+                color: #ccc;
+                cursor: pointer;
+                transition: 0.3s;
+            }
+            input[type="file"]:hover {
+                border-color: #ffce00;
+                color: #fff;
+            }
+            button {
+                margin: 12px 8px;
+                padding: 12px 22px;
+                border: none;
+                border-radius: 30px;
+                font-weight: bold;
+                color: #fff;
+                cursor: pointer;
+                background: linear-gradient(135deg, #ff8c00, #ff5f6d);
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+            }
+            button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 140, 0, 0.6);
+            }
+            #result {
+                text-align: left;
+                margin-top: 20px;
+                background: rgba(0, 0, 0, 0.4);
+                padding: 15px;
+                border-radius: 10px;
+                font-size: 0.9em;
+                color: #ffce00;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+            a {
+                color: #00c3ff;
+                text-decoration: none;
+                font-weight: bold;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>🧠 Refund Image Classifier</h2>
+            <form id="form" enctype="multipart/form-data">
+                <input type="file" name="image" accept="image/*" required><br><br>
+                <button type="button" onclick="predict()">🔍 Predict</button>
+                <button type="button" onclick="uploadToDrive()">☁️ Upload to Drive</button>
+            </form>
+            <pre id="result"></pre>
+            <p style="margin-top:20px;"><a href="/authorize">🔑 Authorize Google Drive</a></p>
+        </div>
+
         <script>
             async function predict() {
                 const formData = new FormData(document.getElementById('form'));
@@ -168,7 +248,7 @@ def upload_page():
     """
 
 # ======================================================
-# UPLOAD DRIVE ONLY (REPLACES OLD DRIVE CODE)
+# UPLOAD DRIVE ONLY
 # ======================================================
 @app.route("/upload_drive_only", methods=["POST"])
 def upload_drive_only():
@@ -193,7 +273,7 @@ def upload_drive_only():
     return jsonify(result)
 
 # ======================================================
-# PREDICT (UNTOUCHED)
+# PREDICT
 # ======================================================
 @app.route("/predict", methods=["POST"])
 def predict():

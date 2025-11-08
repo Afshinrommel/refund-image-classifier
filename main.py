@@ -11,8 +11,12 @@ import gdown
 # ===============================
 # 🧠 CONFIGURATION SECTION
 # ===============================
-MODEL_URL = "https://drive.google.com/uc?id=10QVwxFBdz6nhqQoe-LnQSQi87e2kPRLv"  # model.h5 in Drive
+# https://drive.google.com/file/d/154facxUyy9kohASgOmUOBixIKswRhNPI/view?usp=sharing
+MODEL_URL = "https://drive.google.com/uc?id=154facxUyy9kohASgOmUOBixIKswRhNPI"   # model.h5 in Drive
 MODEL_FILENAME = "model.h5"
+
+
+CLASS_MAP_URL = "https://drive.google.com/uc?id=1RL6oiB8UOVkOmCsjqO5qbJsS0g7ZFMqf" # model_CLASS.JSON in Drive
 CLASS_MAP_FILENAME = "class_indices.json"
 
 # ✅ Shared Google Drive folder (with test images)
@@ -54,12 +58,15 @@ def load_model_or_exit(path):
 
 def load_class_map():
     if not os.path.exists(CLASS_MAP_FILENAME):
-        print("⚠️ class_indices.json not found — classes will show as numbers.")
-        return None
+        print("⚠️ Class map not found. Downloading...")
+        gdown.download(CLASS_MAP_URL, CLASS_MAP_FILENAME, quiet=False)
+        print("✅ Class map downloaded:", CLASS_MAP_FILENAME)
+
     with open(CLASS_MAP_FILENAME, "r") as f:
         class_indices = json.load(f)
-    return {v: k for k, v in class_indices.items()}
 
+    # Convert {class_name: index} → {index: class_name}
+    return {v: k for k, v in class_indices.items()}
 # ===============================
 # 🔍 PREDICTION FUNCTION
 # ===============================

@@ -1,8 +1,0 @@
-filename,predicted_class_id,predicted_class_name,confidence
-test2.jpg,1,Faces,0.9999
-image_0001 (3).jpg,4,Motorbikes,0.9999
-image_0021.jpg,0,BACKGROUND_Google,0.9997
-test1.jpg,1,Faces,1.0
-image_0007.jpg,3,Leopards,1.0
-image_0001 (1).jpg,6,airplanes,1.0
-image_0013.jpg,3,Leopards,0.9999

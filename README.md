@@ -55,7 +55,7 @@ If the model is very large, use Git LFS or upload the model to Google Drive / S3
 
 To generate more detailed logs, you can add logging or send output to a database.
 
-If you want to save results daily in a separate table, you can modify main.py so that the output filename includes the date.
+If you want to save results daily in a separate table, you can modify main.py so that the output filename includes the date.If you want to store the results on a daily basis in a separate table, main.py can be modified so that the output file name includes the date.
 
 
 
@@ -64,5 +64,4 @@ If you want to save results daily in a separate table, you can modify main.py so
 
 
 
-- اگر می‌خواهید نتایج را به صورت روزانه در یک جدول جداگانه ذخیره کنید، می‌توان main.py را طوری تغییر داد که نام فایل خروجی شامل تاریخ باشد.
 

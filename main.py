@@ -7,14 +7,15 @@ import pandas as pd
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
+import re
 
 # ===============================
 # 🧠 CONFIGURATION SECTION
 # ===============================
-MODEL_URL = "https://drive.google.com/uc?id=154facxUyy9kohASgOmUOBixIKswRhNPI"   # model.h5 in Drive
+MODEL_URL = "https://drive.google.com/uc?id=154facxUyy9kohASgOmUOBixIKswRhNPI"
 MODEL_FILENAME = "model.h5"
 
-CLASS_MAP_URL = "https://drive.google.com/uc?id=1RL6oiB8UOVkOmCsjqO5qbJsS0g7ZFMqf" # model_CLASS.JSON in Drive
+CLASS_MAP_URL = "https://drive.google.com/uc?id=1RL6oiB8UOVkOmCsjqO5qbJsS0g7ZFMqf"
 CLASS_MAP_FILENAME = "class_indices.json"
 
 TEST_FOLDER_URL = "https://drive.google.com/drive/folders/1VUYS-Ldx--bbSbQDoJ5XRj-nFV-aKKnc?usp=drive_link"
@@ -27,7 +28,6 @@ os.makedirs(PREDICTION_DIR, exist_ok=True)
 # 🔽 DOWNLOAD TEST IMAGES
 # ===============================
 def download_test_images():
-    '''Download test images from Google Drive folder.'''
     print("⬇️ Downloading latest test images from Google Drive...")
     gdown.download_folder(url=TEST_FOLDER_URL, output=TEST_DIR, quiet=False, use_cookies=False)
     print("✅ Test images downloaded!")
@@ -76,7 +76,7 @@ def predict_image(model, img_path, index_to_class):
     return class_id, class_name, confidence
 
 # ===============================
-# 🚀 RUN BATCH PREDICTION (UPDATED)
+# 🚀 RUN BATCH PREDICTION WITH CUSTOMER INFO
 # ===============================
 def run_batch():
     print(f"🕐 Starting batch run: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
@@ -89,12 +89,13 @@ def run_batch():
     model = load_model_or_exit(MODEL_FILENAME)
     index_to_class = load_class_map()
 
-    # Load existing CSV if exists
     csv_file = os.path.join(PREDICTION_DIR, "predictions.csv")
     if os.path.exists(csv_file):
         df_existing = pd.read_csv(csv_file)
     else:
-        df_existing = pd.DataFrame(columns=["filename","predicted_class_name","confidence","timestamp"])
+        df_existing = pd.DataFrame(columns=[
+            "filename", "customer_name", "customer_id", "predicted_class_name", "confidence", "timestamp"
+        ])
 
     new_records = []
     for fname in os.listdir(TEST_DIR):
@@ -102,25 +103,39 @@ def run_batch():
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
             continue
 
+        # Extract customer name and ID from filename
+        # Example: Alice_12345_image.jpg
+        match = re.match(r"([a-zA-Z]+)_([0-9]+)_.*", fname)
+        if match:
+            cust_name = match.group(1)
+            cust_id = int(match.group(2))
+        else:
+            cust_name = "Unknown"
+            cust_id = -1
+
         class_id, class_name, confidence = predict_image(model, fpath, index_to_class)
 
-        # Check if this record already exists with same filename, class, and confidence
+        # Check if the record exists with same filename, class, confidence, and customer info
         existing = df_existing[
             (df_existing["filename"] == fname) &
             (df_existing["predicted_class_name"] == class_name) &
-            (np.isclose(df_existing["confidence"], confidence, atol=1e-4))
+            (np.isclose(df_existing["confidence"], confidence, atol=1e-4)) &
+            (df_existing["customer_name"] == cust_name) &
+            (df_existing["customer_id"] == cust_id)
         ]
+
         if existing.empty:
-            # New or updated record → add timestamp
             new_records.append({
                 "filename": fname,
+                "customer_name": cust_name,
+                "customer_id": cust_id,
                 "predicted_class_name": class_name,
                 "confidence": round(confidence, 4),
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
             })
-            print(f"🖼️ New/Updated: {fname} → {class_name} ({confidence:.2f})")
+            print(f"🖼️ New/Updated: {fname} → {class_name} ({confidence:.2f}) for {cust_name} ({cust_id})")
         else:
-            print(f"ℹ️ Skipping existing: {fname} → {class_name} ({confidence:.2f})")
+            print(f"ℹ️ Skipping existing: {fname} → {class_name} ({confidence:.2f}) for {cust_name} ({cust_id})")
 
     if new_records:
         df_new = pd.DataFrame(new_records)
@@ -134,5 +149,5 @@ def run_batch():
 # 🏁 MAIN ENTRY
 # ===============================
 if __name__ == "__main__":
-    print(">>> Running Automated Batch Prediction (v4.0) <<<")
+    print(">>> Running Automated Batch Prediction (v5.0) <<<")
     run_batch()

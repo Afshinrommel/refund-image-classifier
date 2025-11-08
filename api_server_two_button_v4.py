@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
-from flask import Flask, request, jsonify, redirect, url_for, session, render_template_string
+from flask import Flask, request, jsonify, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
@@ -30,7 +30,7 @@ app = Flask(__name__)
 app.secret_key = "replace_this_with_a_secure_key"
 
 # ======================================================
-# LOAD CUSTOMER DATA AT STARTUP
+# LOAD CUSTOMER DATA
 # ======================================================
 with open(CUSTOMER_FILE) as f:
     CUSTOMERS = json.load(f)
@@ -48,7 +48,7 @@ try:
         infer = model.signatures["serving_default"]
     else:
         is_keras_model = True
-except Exception as e:
+except Exception:
     model = tf.saved_model.load(MODEL_PATH)
     infer = model.signatures["serving_default"]
 
@@ -93,7 +93,7 @@ def oauth2callback():
     return redirect(url_for("upload_page"))
 
 # ======================================================
-# VALIDATE CUSTOMER ROUTE
+# VALIDATE CUSTOMER
 # ======================================================
 @app.route("/validate_customer", methods=["POST"])
 def validate_customer():
@@ -121,11 +121,13 @@ def upload_to_drive(filepath, filename):
     service = build("drive", "v3", credentials=creds)
     file_metadata = {"name": filename, "parents": [DRIVE_FOLDER_ID]}
     media = MediaFileUpload(filepath, resumable=True)
-    uploaded_file = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
+    uploaded_file = service.files().create(
+        body=file_metadata, media_body=media, fields="id, webViewLink"
+    ).execute()
     return {"id": uploaded_file["id"], "link": uploaded_file["webViewLink"]}
 
 # ======================================================
-# HTML PAGE
+# FRONTEND PAGE
 # ======================================================
 @app.route("/upload", methods=["GET"])
 def upload_page():
@@ -135,15 +137,16 @@ def upload_page():
 <title>Refund Image Classifier</title>
 <style>
 body { font-family:sans-serif; background:#222; color:#fff; display:flex; justify-content:center; align-items:center; height:100vh; }
-.card { background:#333; padding:30px; border-radius:15px; width:350px; text-align:center; }
+.card { background:#333; padding:30px; border-radius:15px; width:400px; text-align:center; }
 input, button { margin:5px 0; padding:10px; width:90%; border-radius:8px; border:none; }
 button:disabled { background:#555; cursor:not-allowed; }
+pre { text-align:left; font-size:12px; background:#111; padding:10px; border-radius:10px; color:#0f0; overflow-x:auto; }
 </style>
 </head>
 <body>
 <div class="card">
 <h2>🧠 Refund Image Classifier</h2>
-<input type="text" id="cust_name" placeholder="Enter Name">
+<input type="text" id="cust_name" placeholder="Enter Customer Name">
 <input type="text" id="cust_id" placeholder="Enter Customer ID">
 <button id="validate_btn" onclick="validateCustomer()">✅ Validate Customer</button>
 <br>
@@ -153,10 +156,13 @@ button:disabled { background:#555; cursor:not-allowed; }
 <pre id="result"></pre>
 <p><a href="/authorize">🔑 Authorize Google Drive</a></p>
 </div>
+
 <script>
 async function validateCustomer() {
-    const name = document.getElementById('cust_name').value;
-    const id = document.getElementById('cust_id').value;
+    const name = document.getElementById('cust_name').value.trim();
+    const id = document.getElementById('cust_id').value.trim();
+    if(!name || !id) return alert("Enter name and ID first!");
+    
     const res = await fetch('/validate_customer', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -188,13 +194,20 @@ async function predict() {
 
 async function uploadToDrive() {
     const fileInput = document.getElementById('image_file');
-    if(!fileInput.files[0]) return alert("Select an image first!");
+    const name = document.getElementById('cust_name').value.trim();
+    const id = document.getElementById('cust_id').value.trim();
+    if (!fileInput.files[0]) return alert("Select an image first!");
+    if (!name || !id) return alert("Customer name and ID missing!");
+
     const formData = new FormData();
     formData.append("image", fileInput.files[0]);
-    const res = await fetch('/upload_drive_only',{method:'POST',body:formData});
+    formData.append("name", name);
+    formData.append("id", id);
+
+    const res = await fetch('/upload_drive_only', { method: 'POST', body: formData });
     const data = await res.json();
-    document.getElementById('result').innerText = JSON.stringify(data,null,2);
-    if(data.link) window.open(data.link,"_blank");
+    document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    if (data.link) window.open(data.link, "_blank");
 }
 </script>
 </body>
@@ -202,42 +215,72 @@ async function uploadToDrive() {
 """
 
 # ======================================================
-# OTHER ROUTES (predict & upload_drive_only)
+# PREDICT ROUTE
 # ======================================================
 @app.route("/predict", methods=["POST"])
 def predict():
-    if "image" not in request.files: return jsonify({"error":"No image uploaded"}),400
+    if "image" not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
     img_file = request.files["image"]
     local_path = os.path.join(UPLOAD_FOLDER, secure_filename(img_file.filename))
     img_file.save(local_path)
+
     try:
-        img = image.load_img(local_path,target_size=(224,224))
+        img = image.load_img(local_path, target_size=(224, 224))
         x = image.img_to_array(img)
-        x = np.expand_dims(x,0)
+        x = np.expand_dims(x, 0)
         x = preprocess_input(x)
-        if is_keras_model: preds = model.predict(x)
-        else: preds = list(infer(tf.constant(x,dtype=tf.float32)).values())[0].numpy()
+        if is_keras_model:
+            preds = model.predict(x)
+        else:
+            preds = list(infer(tf.constant(x, dtype=tf.float32)).values())[0].numpy()
         class_id = int(np.argmax(preds))
         confidence = float(np.max(preds))
         class_name = index_to_class[class_id] if index_to_class else str(class_id)
     finally:
-        if os.path.exists(local_path): os.remove(local_path)
-    return jsonify({"predicted_class":class_name,"confidence":confidence})
+        if os.path.exists(local_path):
+            os.remove(local_path)
 
+    return jsonify({"predicted_class": class_name, "confidence": confidence})
+
+# ======================================================
+# UPLOAD TO DRIVE (WITH SAFE CUSTOMER INFO)
+# ======================================================
 @app.route("/upload_drive_only", methods=["POST"])
 def upload_drive_only():
-    if "image" not in request.files: return jsonify({"error":"No image uploaded"}),400
+    if "image" not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+
     img_file = request.files["image"]
+    cust_name = request.form.get("name", "").strip()
+    cust_id = request.form.get("id", "").strip()
+
+    if not cust_name or not cust_id:
+        return jsonify({"error": "Missing customer name or ID"}), 400
+
+    # Safe filename
+    safe_name = cust_name.replace(" ", "_").replace("/", "_")
+    safe_id = cust_id.replace(" ", "_").replace("/", "_")
+
     local_path = os.path.join(UPLOAD_FOLDER, secure_filename(img_file.filename))
     img_file.save(local_path)
+
+    base_name, ext = os.path.splitext(img_file.filename)
+    filename_with_customer = f"{base_name}_{safe_name}_{safe_id}{ext}"
+
     try:
-        result = upload_to_drive(local_path,img_file.filename)
+        result = upload_to_drive(local_path, filename_with_customer)
+        result["customer_name"] = cust_name
+        result["customer_id"] = cust_id
+        result["uploaded_filename"] = filename_with_customer
     finally:
-        if os.path.exists(local_path): os.remove(local_path)
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
     return jsonify(result)
 
 # ======================================================
 # MAIN
 # ======================================================
-if __name__=="__main__":
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

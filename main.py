@@ -94,7 +94,7 @@ def run_batch():
         df_existing = pd.read_csv(csv_file)
     else:
         df_existing = pd.DataFrame(columns=[
-            "filename", "customer_name", "predicted_class_name", "confidence", "timestamp"
+            "filename", "predicted_class_name", "customer_name", "customer_id", "confidence", "timestamp"
         ])
 
     new_records = []
@@ -103,34 +103,41 @@ def run_batch():
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
             continue
 
-        # Extract customer name from filename (ignore ID now)
-        match = re.match(r"([a-zA-Z]+)_([0-9]+)_.*", fname)
+        # Extract class, customer name, and customer ID from filename
+        # Example: guitar_Alice_12345.png
+        match = re.match(r"([A-Za-z]+)_([A-Za-z]+)_([0-9]+)", fname)
         if match:
-            cust_name = match.group(1)
+            class_from_name = match.group(1)
+            cust_name = match.group(2)
+            cust_id = match.group(3)
         else:
-            cust_name = fname  # fallback: use filename as customer_name
+            class_from_name = ""
+            cust_name = fname
+            cust_id = ""
 
         class_id, class_name, confidence = predict_image(model, fpath, index_to_class)
 
-        # Check if record exists with same filename, class, and confidence
+        # Check if record exists with same filename, class, confidence, and ID
         existing = df_existing[
             (df_existing["filename"] == fname) &
             (df_existing["predicted_class_name"] == class_name) &
             (np.isclose(df_existing["confidence"], confidence, atol=1e-4)) &
-            (df_existing["customer_name"] == cust_name)
+            (df_existing["customer_name"] == cust_name) &
+            (df_existing["customer_id"].astype(str) == str(cust_id))
         ]
 
         if existing.empty:
             new_records.append({
                 "filename": fname,
-                "customer_name": cust_name,
                 "predicted_class_name": class_name,
+                "customer_name": cust_name,
+                "customer_id": cust_id,
                 "confidence": round(confidence, 4),
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
             })
-            print(f"🖼️ New/Updated: {fname} → {class_name} ({confidence:.2f}) for {cust_name}")
+            print(f"🖼️ New/Updated: {fname} → {class_name} ({confidence:.2f}) | {cust_name} ({cust_id})")
         else:
-            print(f"ℹ️ Skipping existing: {fname} → {class_name} ({confidence:.2f}) for {cust_name}")
+            print(f"ℹ️ Skipping existing: {fname} → {class_name} ({confidence:.2f}) | {cust_name} ({cust_id})")
 
     if new_records:
         df_new = pd.DataFrame(new_records)
@@ -144,5 +151,5 @@ def run_batch():
 # 🏁 MAIN ENTRY
 # ===============================
 if __name__ == "__main__":
-    print(">>> Running Automated Batch Prediction (v5.1) <<<")
+    print(">>> Running Automated Batch Prediction (v5.2 - Enhanced Columns) <<<")
     run_batch()

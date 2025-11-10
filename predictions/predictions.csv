@@ -1,0 +1,5 @@
+filename,predicted_class_name,customer_name,customer_id,confidence,timestamp
+watch_Bob_67890.png,watch,Bob,67890,1.0,2025-11-10 10:16:36 UTC
+laptop_Charlie_24680.png,laptop,Charlie,24680,1.0,2025-11-10 10:16:36 UTC
+guitar_Alice_12345.png,electric_guitar,Alice,12345,0.9543,2025-11-10 10:16:36 UTC
+laptop_Alice_12345.png,laptop,Alice,12345,1.0,2025-11-10 10:16:36 UTC

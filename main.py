@@ -12,8 +12,8 @@ import re
 # ===============================
 # 🧠 CONFIGURATION SECTION
 # ===============================
-# Path to the local model folder (saved_model.pb)
-MODEL_DIR = "model_saved"
+# Specific path to your new .keras model file
+MODEL_DIR = os.path.join("model_saved", "final_model_caltech.keras")
 
 CLASS_MAP_URL = "https://drive.google.com/uc?id=1RL6oiB8UOVkOmCsjqO5qbJsS0g7ZFMqf"
 CLASS_MAP_FILENAME = "class_indices.json"
@@ -24,7 +24,7 @@ TEST_DIR = "test_images"
 PREDICTION_DIR = "predictions"
 os.makedirs(PREDICTION_DIR, exist_ok=True)
 
-# Global flags for version compatibility (Added to fix GitHub Actions Error)
+# Global flags for Keras 3 / TensorFlow version compatibility
 is_legacy_format = False
 model_inference_func = None
 
@@ -46,26 +46,30 @@ def download_file(url, output_path):
 
 def load_model_or_exit(path):
     global is_legacy_format, model_inference_func
+    
+    # Priority: Check if the specific .keras file exists
     if not os.path.exists(path):
-        print(f"⚠️ Error: Model directory '{path}' not found.")
-        print("Please ensure the 'model_saved' folder is in your GitHub repository.")
-        exit(1)
+        print(f"⚠️ Specific file '{path}' not found. Searching for directory fallback...")
+        path = "model_saved" # Fallback to the folder if file is missing
+        if not os.path.exists(path):
+            print(f"❌ Error: Model path '{path}' not found. Please check your GitHub repository.")
+            exit(1)
         
     print(f"📦 Loading model from: {path}")
     try:
-        # Standard loading for Keras 2 or .keras files
+        # Preferred method: Loading the .keras file (Standard Keras 3)
         model = tf.keras.models.load_model(path)
         is_legacy_format = False
-        print("✅ Model loaded successfully via standard Keras method!")
+        print(f"✅ SUCCESS: Loaded '{os.path.basename(path)}' via standard Keras method!")
         return model
     except Exception as error_msg:
-        # Hybrid Mode: Compatibility for Keras 3 with legacy SavedModel folders
-        print(f"⚠️ Standard load failed (Keras 3 detected): {str(error_msg)}")
-        print("🔄 Switching to TensorFlow SavedModel signature loader...")
+        # Fallback method: Loading legacy SavedModel folders via TF Signatures
+        print(f"ℹ️ Standard load failed or not a .keras file. Switch to Hybrid Mode.")
+        print(f"Error details: {str(error_msg)}")
         model = tf.saved_model.load(path)
         model_inference_func = model.signatures["serving_default"]
         is_legacy_format = True
-        print("✅ Model loaded successfully via TensorFlow Signature mode!")
+        print("✅ SUCCESS: Loaded via TensorFlow Signature mode!")
         return model
 
 def load_class_map():
@@ -77,7 +81,7 @@ def load_class_map():
     with open(CLASS_MAP_FILENAME, "r") as f:
         class_indices = json.load(f)
     
-    # Mapping indices to names
+    # Convert index (int) to class name (string)
     return {v: k for k, v in class_indices.items()}
 
 # ===============================
@@ -86,30 +90,24 @@ def load_class_map():
 def predict_image(model, img_path, index_to_class):
     global is_legacy_format, model_inference_func
     
-    # Load and preprocess image (Standard 224x224 for MobileNetV2)
+    # Image preprocessing for MobileNetV2
     img = image.load_img(img_path, target_size=(224, 224))
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
     if not is_legacy_format:
-        # Keras 2 / Normal Prediction
+        # Normal prediction for .keras files
         preds = model.predict(x)
     else:
-        # Keras 3 / Legacy SavedModel Signature Prediction
+        # Dictionary-based prediction for SavedModel folders
         input_data = tf.constant(x, dtype=tf.float32)
         inference_results = model_inference_func(input_data)
-        # Getting the tensor from the dictionary output
         preds = list(inference_results.values())[0].numpy()
 
     class_id = np.argmax(preds, axis=1)[0]
     confidence = float(np.max(preds))
-    
-    # Convert index to class name
-    if index_to_class:
-        class_name = index_to_class[class_id]
-    else:
-        class_name = str(class_id)
+    class_name = index_to_class[class_id] if index_to_class else str(class_id)
 
     return class_id, class_name, confidence
 
@@ -122,15 +120,15 @@ def run_batch():
     download_test_images()
 
     if not os.path.exists(TEST_DIR):
-        raise FileNotFoundError(f"No directory named '{TEST_DIR}' found.")
+        raise FileNotFoundError(f"Directory '{TEST_DIR}' not found.")
 
-    # Loading critical assets
+    # Assets Loading
     model = load_model_or_exit(MODEL_DIR)
     index_to_class = load_class_map()
 
     csv_file = os.path.join(PREDICTION_DIR, "predictions.csv")
     
-    # Final Research Columns Structure
+    # 8 Columns as strictly requested
     columns = [
         "filename", "true_label", "predicted_class_name", 
         "is_match", "customer_name", "customer_id", 
@@ -144,16 +142,13 @@ def run_batch():
 
     new_records = []
     
-    # Processing each image in the test directory
     for fname in os.listdir(TEST_DIR):
         fpath = os.path.join(TEST_DIR, fname)
-        
-        # Filter for image files only
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
             continue
 
-        # Regex Extraction: object_index_name_id (Example: watch_1_Amir_11111.png)
-        # Supports both simple and complex filename patterns
+        # Regex: Extracting true_label, customer_name, and customer_id
+        # Pattern: [object]_[index]_[name]_[id].extension
         match = re.match(r"([A-Za-z]+)(?:_\d+)?_([A-Za-z]+)_(\d+)", fname)
         
         if match:
@@ -165,13 +160,13 @@ def run_batch():
             cust_name = fname
             cust_id = "0"
 
-        # Model Prediction
+        # AI Analysis
         class_id, class_name, confidence = predict_image(model, fpath, index_to_class)
 
-        # Accuracy Comparison Logic
+        # Scientific Accuracy Check
         is_match = true_label in class_name.lower()
 
-        # Check if record already exists (Avoid Duplicate Entries)
+        # Duplicate Avoidance Logic (Checking filename, AI result, and confidence)
         existing = df_existing[
             (df_existing["filename"] == fname) &
             (df_existing["predicted_class_name"] == class_name) &
@@ -179,8 +174,7 @@ def run_batch():
         ]
 
         if existing.empty:
-            # Create a new dictionary record
-            new_entry = {
+            new_records.append({
                 "filename": fname,
                 "true_label": true_label,
                 "predicted_class_name": class_name,
@@ -189,28 +183,25 @@ def run_batch():
                 "customer_id": cust_id,
                 "confidence": round(confidence, 4),
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-            }
-            new_records.append(new_entry)
-            print(f"🖼️ New Record: {fname} -> AI: {class_name} | Correct: {is_match}")
+            })
+            print(f"🖼️ Processed: {fname} -> AI: {class_name} | Match: {is_match}")
         else:
-            print(f"ℹ️ Skipping existing entry: {fname}")
+            print(f"ℹ️ Entry already exists: {fname}")
 
-    # Save results to CSV if there are new records
+    # Finalize CSV
     if new_records:
         df_new = pd.DataFrame(new_records)
         df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-        
-        # Ensure correct column order before saving
         df_combined = df_combined[columns]
         df_combined.to_csv(csv_file, index=False)
-        print(f"✅ CSV database updated: {csv_file}")
+        print(f"✅ CSV updated at: {csv_file}")
     else:
-        print("⚠️ No new unique images were found to process.")
+        print("⚠️ No new records to save.")
 
 # ===============================
 # 🏁 MAIN ENTRY POINT
 # ===============================
 if __name__ == "__main__":
-    print(">>> Automated Batch Prediction System (v6.2 - Hybrid Compatibility) <<<")
+    print(">>> Automated Batch Prediction System (v7.0 - Precision Mode) <<<")
     run_batch()
     print(">>> Batch Processing Completed Successfully <<<")

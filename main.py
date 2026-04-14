@@ -11,6 +11,10 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
 import re
+
+# اضافه شده برای هماهنگی با سرور گیت‌هاب
+import matplotlib
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 
 # ===============================
@@ -75,7 +79,10 @@ def generate_visual_report(df):
     
     plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140, 
             colors=colors, explode=[0.05] * len(counts), shadow=True)
-    plt.title('Model Classification Accuracy (Match vs Mismatch)')
+    
+    # اضافه کردن زمان دقیق برای مجبور کردن گیت‌هاب به آپدیت عکس
+    update_time = time.strftime("%H:%M:%S")
+    plt.title(f'Model Classification Accuracy (Updated: {update_time})')
     
     chart_path = os.path.join(PREDICTION_DIR, "accuracy_chart.png")
     plt.savefig(chart_path)

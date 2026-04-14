@@ -1,5 +1,5 @@
 import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+os.environ["TF_USE_LEGACY_KERAS"] = "1" # Required for Keras 2/3 compatibility
 
 import json
 import time
@@ -9,6 +9,7 @@ import pandas as pd
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
+import re
 
 # ===============================
 # CONFIGURATION SECTION
@@ -34,7 +35,7 @@ def download_assets():
         gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
     
     if not os.path.exists(CLASS_MAP_FILENAME):
-        print("Downloading class map from Google Drive...")
+        print("Downloading class map...")
         gdown.download(CLASS_MAP_URL, CLASS_MAP_FILENAME, quiet=False)
 
     print("Downloading test images...")
@@ -86,19 +87,25 @@ def run_batch():
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
             continue
 
-        true_label = fname.split('_')[0].lower()
-        class_name, confidence = predict_image(model, fpath, index_to_class)
-        is_match = true_label in class_name.lower()
+        # Logic to extract the true label from filename
+        # Example: 'airplanes_001.jpg' -> 'airplanes'
+        true_label_raw = re.split(r'[_|-]', fname)[0].lower()
+        
+        predicted_class, confidence = predict_image(model, fpath, index_to_class)
+        
+        # Matching logic: Compare extracted filename label with predicted class
+        # We check if the extracted label exists within the predicted class name or vice-versa
+        is_correct = true_label_raw in predicted_class.lower() or predicted_class.lower() in true_label_raw
 
         new_records.append({
             "filename": fname,
-            "true_label": true_label,
-            "predicted_class_name": class_name,
-            "is_match": is_match,
+            "extracted_label": true_label_raw,
+            "predicted_class": predicted_class,
+            "is_correct": "YES" if is_correct else "NO",
             "confidence": round(confidence, 4),
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
         })
-        print(f"Processed: {fname} -> {class_name} ({confidence:.2f})")
+        print(f"Processed: {fname} | Match: {'Correct' if is_correct else 'Incorrect'}")
 
     if new_records:
         df = pd.DataFrame(new_records)

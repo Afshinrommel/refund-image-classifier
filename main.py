@@ -45,32 +45,23 @@ def download_file(url, output_path):
     print(f"✅ Downloaded: {output_path}")
 
 def load_model_or_exit(path):
-    global is_legacy_format, model_inference_func
+    global is_legacy_format
     
-    # Priority: Check if the specific .keras file exists
     if not os.path.exists(path):
-        print(f"⚠️ Specific file '{path}' not found. Searching for directory fallback...")
-        path = "model_saved" # Fallback to the folder if file is missing
-        if not os.path.exists(path):
-            print(f"❌ Error: Model path '{path}' not found. Please check your GitHub repository.")
-            exit(1)
+        print(f"❌ ERROR: Model file not found at: {path}")
+        exit(1)
         
-    print(f"📦 Loading model from: {path}")
+    print(f"📦 Loading Keras model: {path}")
     try:
-        # Preferred method: Loading the .keras file (Standard Keras 3)
-        model = tf.keras.models.load_model(path)
+        # The FIX: Use compile=False to bypass 'quantization_config' and optimizer errors
+        model = tf.keras.models.load_model(path, compile=False)
         is_legacy_format = False
-        print(f"✅ SUCCESS: Loaded '{os.path.basename(path)}' via standard Keras method!")
+        print("✅ SUCCESS: Model loaded successfully!")
         return model
-    except Exception as error_msg:
-        # Fallback method: Loading legacy SavedModel folders via TF Signatures
-        print(f"ℹ️ Standard load failed or not a .keras file. Switch to Hybrid Mode.")
-        print(f"Error details: {str(error_msg)}")
-        model = tf.saved_model.load(path)
-        model_inference_func = model.signatures["serving_default"]
-        is_legacy_format = True
-        print("✅ SUCCESS: Loaded via TensorFlow Signature mode!")
-        return model
+    except Exception as e:
+        print(f"❌ CRITICAL LOAD ERROR: {str(e)}")
+        # No fallback to saved_model.load for .keras files
+        exit(1)
 
 def load_class_map():
     if not os.path.exists(CLASS_MAP_FILENAME):

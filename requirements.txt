@@ -1,4 +1,4 @@
-tensorflow
+
 pandas
 numpy
 pillow
@@ -11,5 +11,8 @@ flask
 gdown
 pydrive2
 
-
-
+tensorflow>=2.16.1
+keras>=3.0.0
+gdown
+pandas
+numpy<2.0.0

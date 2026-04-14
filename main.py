@@ -11,6 +11,7 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
 import re
+import matplotlib.pyplot as plt
 
 # ===============================
 # CONFIGURATION SECTION
@@ -31,7 +32,7 @@ PREDICTION_DIR = "predictions"
 os.makedirs(PREDICTION_DIR, exist_ok=True)
 
 # ===============================
-# DOWNLOAD FUNCTIONS
+# CORE FUNCTIONS
 # ===============================
 def download_assets():
     if not os.path.exists(MODEL_PATH):
@@ -48,16 +49,11 @@ def download_assets():
 def load_class_map():
     with open(CLASS_MAP_FILENAME, "r") as f:
         class_indices = json.load(f)
-    # Convert numeric index to string label
     return {int(v): k for k, v in class_indices.items()}
 
-# ===============================
-# MODEL LOADING
-# ===============================
 def load_model_safely():
     print(f"Loading H5 model: {MODEL_PATH}")
     try:
-        # Load the model without compilation for inference
         model = tf.keras.models.load_model(MODEL_PATH, compile=False)
         print("SUCCESS: Model loaded successfully!")
         return model
@@ -65,11 +61,28 @@ def load_model_safely():
         print(f"CRITICAL ERROR during model load: {str(e)}")
         exit(1)
 
-# ===============================
-# PREDICTION LOGIC
-# ===============================
+def generate_visual_report(df):
+    """Generates a pie chart of prediction accuracy and saves it as an image."""
+    print("Generating graphical chart...")
+    plt.figure(figsize=(8, 6))
+    
+    # Count YES and NO values from is_correct column
+    counts = df['is_correct'].value_counts()
+    
+    # Define labels and professional colors
+    labels = counts.index
+    colors = ['#2ecc71', '#e74c3c'] # Emerald Green for YES, Alizarin Red for NO
+    
+    plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140, 
+            colors=colors, explode=[0.05] * len(counts), shadow=True)
+    plt.title('Model Classification Accuracy (Match vs Mismatch)')
+    
+    chart_path = os.path.join(PREDICTION_DIR, "accuracy_chart.png")
+    plt.savefig(chart_path)
+    plt.close() # Close figure to free memory
+    print(f"Graphical chart saved to: {chart_path}")
+
 def predict_image(model, img_path, index_to_class):
-    # Automatically resize images to 224x224 as required by MobileNetV2
     img = image.load_img(img_path, target_size=(224, 224))
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
@@ -81,6 +94,9 @@ def predict_image(model, img_path, index_to_class):
     class_name = index_to_class.get(class_id, f"Unknown({class_id})")
     return class_name, confidence
 
+# ===============================
+# MAIN EXECUTION
+# ===============================
 def run_batch():
     download_assets()
     model = load_model_safely()
@@ -95,7 +111,6 @@ def run_batch():
     csv_file = os.path.join(PREDICTION_DIR, "predictions.csv")
     new_records = []
     
-    # Iterate through all images in the test folder
     for fname in os.listdir(TEST_DIR):
         fpath = os.path.join(TEST_DIR, fname)
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
@@ -107,7 +122,7 @@ def run_batch():
         predicted_class, confidence = predict_image(model, fpath, index_to_class)
         pred_lower = predicted_class.lower()
         
-        # Core validation logic including aliases
+        # Validation logic including alias checking
         is_correct = (
             true_label_raw in pred_lower or 
             pred_lower in true_label_raw or
@@ -122,12 +137,15 @@ def run_batch():
             "confidence": round(confidence, 4),
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
         })
-        print(f"Processed: {fname} -> Result: {'YES' if is_correct else 'NO'}")
+        print(f"Processed: {fname} -> Correct: {is_correct}")
 
     if new_records:
         df = pd.DataFrame(new_records)
         df.to_csv(csv_file, index=False)
-        print(f"All results updated in {csv_file}")
+        print(f"CSV results updated in {csv_file}")
+        
+        # Call the visualization function
+        generate_visual_report(df)
     else:
         print("No images found to process.")
 

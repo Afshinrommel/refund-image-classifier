@@ -34,6 +34,6 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add predictions/predictions.csv
-        git commit -m "Auto-update predictions.csv with latest results" || echo "No new predictions to commit"
+        git add predictions/
+        git commit -m "Auto-update predictions CSV and accuracy chart" || echo "No new predictions to commit"
         git push

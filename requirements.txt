@@ -4,3 +4,4 @@ pandas
 gdown
 numpy<2.0.0
 Pillow
+matplotlib

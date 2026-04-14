@@ -1,4 +1,6 @@
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 import json
 import time
 import tensorflow as tf
@@ -11,15 +13,12 @@ import gdown
 # ===============================
 # CONFIGURATION SECTION
 # ===============================
-# Direct link to the model (.h5)
 MODEL_URL = "https://drive.google.com/uc?id=1fA5v1y4IM81dbOqOzNOfidjgfViPIizs"
 MODEL_PATH = "final_model_caltech.h5"
 
-# Direct link to the JSON file (class_indices.json)
 CLASS_MAP_URL = "https://drive.google.com/uc?id=1uqqVbCuodTN6Nbc-isDhwnDjUqhWZTKc"
 CLASS_MAP_FILENAME = "class_indices.json"
 
-# Link to the test images folder in Drive
 TEST_FOLDER_URL = "https://drive.google.com/drive/folders/1VUYS-Ldx--bbSbQDoJ5XRj-nFV-aKKnc?usp=drive_link"
 TEST_DIR = "test_images"
 
@@ -44,7 +43,6 @@ def download_assets():
 def load_class_map():
     with open(CLASS_MAP_FILENAME, "r") as f:
         class_indices = json.load(f)
-    # Convert indices to class names (reverse dictionary)
     return {int(v): k for k, v in class_indices.items()}
 
 # ===============================
@@ -83,13 +81,11 @@ def run_batch():
     csv_file = os.path.join(PREDICTION_DIR, "predictions.csv")
     new_records = []
     
-    # Process images in the test folder
     for fname in os.listdir(TEST_DIR):
         fpath = os.path.join(TEST_DIR, fname)
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
             continue
 
-        # Extract true label (assuming filename starts with the label)
         true_label = fname.split('_')[0].lower()
         class_name, confidence = predict_image(model, fpath, index_to_class)
         is_match = true_label in class_name.lower()

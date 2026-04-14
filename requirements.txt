@@ -1,14 +1,5 @@
-
-pillow
-requests
-streamlit
-flask
-gdown
-pydrive2
-gdown
-Pillow
-tensorflow==2.16.1
-tf-keras==2.16.1
+tensorflow==2.19.0
+tf-keras==2.19.0
 pandas
 gdown
 numpy<2.0.0

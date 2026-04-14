@@ -4,6 +4,8 @@ on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *' # Runs automatically every night at 2:00 AM UTC
 
 # Required permission to allow GitHub Actions to save files back to the repository
 permissions:

@@ -53,15 +53,16 @@ def load_model_or_exit(path):
         
     print(f"📦 Loading Keras model: {path}")
     try:
-        # The FIX: Use compile=False to bypass 'quantization_config' and optimizer errors
+        # استفاده از compile=False حیاتی است تا به ورژن Optimizer گیر ندهد
         model = tf.keras.models.load_model(path, compile=False)
         is_legacy_format = False
         print("✅ SUCCESS: Model loaded successfully!")
         return model
     except Exception as e:
-        print(f"❌ CRITICAL LOAD ERROR: {str(e)}")
-        # No fallback to saved_model.load for .keras files
-        exit(1)
+        print(f"❌ CRITICAL ERROR: Could not load the .keras file.")
+        print(f"Details: {str(e)}")
+        print("💡 Hint: This usually means your GitHub environment has an old TensorFlow version.")
+        exit(1) # اینجا اجازه نده برود سراغ tf.saved_model.load
 
 def load_class_map():
     if not os.path.exists(CLASS_MAP_FILENAME):

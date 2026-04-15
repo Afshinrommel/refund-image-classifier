@@ -32,8 +32,8 @@ import json
 
 # Specific configuration with your username
 kaggle_data = {
-    "username": "masoomeh1358",
-    "key": "KGAT_acc3a4faec627a22e4a4c8dd095615ee"
+    "username": "((((()))))",
+    "key": "**********"
 }
 
 os.makedirs(os.path.expanduser("~/.kaggle"), exist_ok=True)

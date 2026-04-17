@@ -3,13 +3,12 @@ import pandas as pd
 import os
 from datetime import datetime
 from PIL import Image
-import plotly.express as px
 
 # ==========================
 # CONFIGURATION
 # ==========================
 PREDICTIONS_DIR = "predictions"
-IMAGES_DIR = "test_images" 
+IMAGES_DIR = "test_images"  # folder containing input images
 
 st.set_page_config(
     page_title="Refund Item Classifier Dashboard",
@@ -74,7 +73,7 @@ else:
     st.warning("Image folder not found. Upload test_images to view previews.")
 
 # ==========================
-# SUMMARY STATISTICS (UPGRADED WITH PLOTLY)
+# SUMMARY STATISTICS
 # ==========================
 st.subheader("📈 Summary Statistics")
 
@@ -85,35 +84,8 @@ summary = (
       .sort_values("count", ascending=False)
 )
 
-# Creating a professional Bar Chart with Gradient Orange colors
-fig = px.bar(
-    summary,
-    x='predicted_class_name',
-    y='count',
-    color='count', 
-    color_continuous_scale='Oranges', 
-    text='count',
-    labels={'predicted_class_name': 'Category', 'count': 'Quantity'}
-)
-
-# Enhancing fonts and layout for presentation
-fig.update_layout(
-    xaxis_title=None,
-    yaxis_title="Total Count",
-    font=dict(size=18), # Larger font for readability
-    plot_bgcolor='rgba(0,0,0,0)', 
-    coloraxis_showscale=False,
-    height=500
-)
-
-fig.update_traces(
-    textposition='outside', 
-    textfont_size=20, # Larger font for numbers on top of bars
-    marker_line_color='rgb(140, 45, 4)', 
-    marker_line_width=1.5
-)
-
-st.plotly_chart(fig, use_container_width=True)
+# Using native Streamlit bar chart (Lightweight & Stable)
+st.bar_chart(summary.set_index("predicted_class_name"))
 
 # ==========================
 # FOOTER

@@ -5,3 +5,6 @@ gdown
 numpy<2.0.0
 Pillow
 matplotlib
+streamlit
+plotly
+Pillow

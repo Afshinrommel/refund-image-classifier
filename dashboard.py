@@ -5,7 +5,7 @@ from datetime import datetime
 from PIL import Image
 
 # ==========================
-# CONFIGURATION
+# ⚙️ CONFIGURATION
 # ==========================
 PREDICTIONS_DIR = "predictions"
 IMAGES_DIR = "test_images"  # folder containing input images
@@ -20,7 +20,7 @@ st.title("🧾 Refund Item Classification Dashboard")
 st.caption("Automatically generated predictions from the nightly/batch process")
 
 # ==========================
-# LOAD AVAILABLE CSV FILES
+# 🗂️ LOAD AVAILABLE CSV FILES
 # ==========================
 if not os.path.exists(PREDICTIONS_DIR):
     st.warning("No predictions folder found yet.")
@@ -36,22 +36,22 @@ if not csv_files:
     st.stop()
 
 # ==========================
-# SELECT WHICH RUN TO VIEW
+# 📅 SELECT WHICH RUN TO VIEW
 # ==========================
 selected_csv = st.selectbox("Select prediction run:", csv_files)
 csv_path = os.path.join(PREDICTIONS_DIR, selected_csv)
 
 df = pd.read_csv(csv_path)
-st.success(f"Loaded {len(df)} predictions from: {selected_csv}")
+st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 
 # ==========================
-# DISPLAY DATAFRAME
+# 📊 DISPLAY DATAFRAME
 # ==========================
 st.subheader("📊 Predictions Table")
-st.dataframe(df, use_container_width=True)
+st.dataframe(df)
 
 # ==========================
-# IMAGE PREVIEW
+# 🖼️ IMAGE PREVIEW
 # ==========================
 st.subheader("🖼️ Image Preview")
 
@@ -73,7 +73,7 @@ else:
     st.warning("Image folder not found. Upload test_images to view previews.")
 
 # ==========================
-# SUMMARY STATISTICS
+# 🧩 SUMMARY STATISTICS
 # ==========================
 st.subheader("📈 Summary Statistics")
 
@@ -84,11 +84,10 @@ summary = (
       .sort_values("count", ascending=False)
 )
 
-# Using native Streamlit bar chart (Lightweight & Stable)
 st.bar_chart(summary.set_index("predicted_class_name"))
 
 # ==========================
-# FOOTER
+# 📅 FOOTER
 # ==========================
 st.markdown("---")
 st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")

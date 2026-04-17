@@ -3,13 +3,13 @@ import pandas as pd
 import os
 from datetime import datetime
 from PIL import Image
-import plotly.express as px
+import plotly.express as px  # برای نمودار با فونت بزرگ حتما نیاز است
 
 # ==========================
-# CONFIGURATION
+# ⚙️ CONFIGURATION
 # ==========================
 PREDICTIONS_DIR = "predictions"
-IMAGES_DIR = "test_images"  # folder containing input images
+IMAGES_DIR = "test_images" 
 
 st.set_page_config(
     page_title="Refund Item Classifier Dashboard",
@@ -21,7 +21,7 @@ st.title("🧾 Refund Item Classification Dashboard")
 st.caption("Automatically generated predictions from the nightly/batch process")
 
 # ==========================
-# LOAD AVAILABLE CSV FILES
+# 🗂️ LOAD AVAILABLE CSV FILES
 # ==========================
 if not os.path.exists(PREDICTIONS_DIR):
     st.warning("No predictions folder found yet.")
@@ -37,22 +37,22 @@ if not csv_files:
     st.stop()
 
 # ==========================
-# SELECT WHICH RUN TO VIEW
+# 📅 SELECT WHICH RUN TO VIEW
 # ==========================
 selected_csv = st.selectbox("Select prediction run:", csv_files)
 csv_path = os.path.join(PREDICTIONS_DIR, selected_csv)
 
 df = pd.read_csv(csv_path)
-st.success(f"Loaded {len(df)} predictions from: {selected_csv}")
+st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 
 # ==========================
-# DISPLAY DATAFRAME
+# 📊 DISPLAY DATAFRAME
 # ==========================
 st.subheader("📊 Predictions Table")
 st.dataframe(df, use_container_width=True)
 
 # ==========================
-# IMAGE PREVIEW
+# 🖼️ IMAGE PREVIEW
 # ==========================
 st.subheader("🖼️ Image Preview")
 
@@ -74,7 +74,7 @@ else:
     st.warning("Image folder not found. Upload test_images to view previews.")
 
 # ==========================
-# SUMMARY STATISTICS (UPGRADED)
+# 🧩 SUMMARY STATISTICS (بخش اصلاح شده برای فونت بزرگ)
 # ==========================
 st.subheader("📈 Summary Statistics")
 
@@ -85,37 +85,37 @@ summary = (
       .sort_values("count", ascending=False)
 )
 
-# Professional Bar Chart with custom font sizes
+# ایجاد نمودار با Plotly برای کنترل کامل روی سایز نوشته‌ها
 fig = px.bar(
     summary,
     x='predicted_class_name',
     y='count',
-    color='count',
-    color_continuous_scale='Oranges',
     text='count',
+    color_discrete_sequence=['#FF4B2B'], # رنگ نارنجی مخصوص داشبورد
     labels={'predicted_class_name': 'Category', 'count': 'Quantity'}
 )
 
+# تنظیمات اصلی سایز فونت (اینجا نوشته‌ها بزرگ می‌شوند)
 fig.update_layout(
-    xaxis_title=None,
-    yaxis_title="Total Items",
-    font=dict(size=18), # Global font size for the chart
+    font=dict(size=22, color="white"), # سایز کلی فونت نمودار
+    xaxis=dict(tickfont=dict(size=20)), # سایز فونت دسته‌بندی‌ها (پایین)
+    yaxis=dict(tickfont=dict(size=20)), # سایز فونت اعداد (بغل)
     plot_bgcolor='rgba(0,0,0,0)',
-    coloraxis_showscale=False,
-    height=500
+    paper_bgcolor='rgba(0,0,0,0)',
+    height=600
 )
 
 fig.update_traces(
+    textfont_size=25,   # سایز عدد روی ستون‌ها
     textposition='outside',
-    textfont_size=20, # Font size for the numbers on top of bars
-    marker_line_color='rgb(140, 45, 4)',
-    marker_line_width=1.5
+    marker_line_color='white',
+    marker_line_width=2
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 # ==========================
-# FOOTER
+# 📅 FOOTER
 # ==========================
 st.markdown("---")
 st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")

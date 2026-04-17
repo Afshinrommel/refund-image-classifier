@@ -3,12 +3,13 @@ import pandas as pd
 import os
 from datetime import datetime
 from PIL import Image
+import plotly.express as px
 
 # ==========================
-# ⚙️ CONFIGURATION
+# CONFIGURATION
 # ==========================
 PREDICTIONS_DIR = "predictions"
-IMAGES_DIR = "test_images"  # folder containing input images
+IMAGES_DIR = "test_images" 
 
 st.set_page_config(
     page_title="Refund Item Classifier Dashboard",
@@ -20,7 +21,7 @@ st.title("🧾 Refund Item Classification Dashboard")
 st.caption("Automatically generated predictions from the nightly/batch process")
 
 # ==========================
-# 🗂️ LOAD AVAILABLE CSV FILES
+# LOAD AVAILABLE CSV FILES
 # ==========================
 if not os.path.exists(PREDICTIONS_DIR):
     st.warning("No predictions folder found yet.")
@@ -36,22 +37,22 @@ if not csv_files:
     st.stop()
 
 # ==========================
-# 📅 SELECT WHICH RUN TO VIEW
+# SELECT WHICH RUN TO VIEW
 # ==========================
 selected_csv = st.selectbox("Select prediction run:", csv_files)
 csv_path = os.path.join(PREDICTIONS_DIR, selected_csv)
 
 df = pd.read_csv(csv_path)
-st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
+st.success(f"Loaded {len(df)} predictions from: {selected_csv}")
 
 # ==========================
-# 📊 DISPLAY DATAFRAME
+# DISPLAY DATAFRAME
 # ==========================
 st.subheader("📊 Predictions Table")
-st.dataframe(df)
+st.dataframe(df, use_container_width=True)
 
 # ==========================
-# 🖼️ IMAGE PREVIEW
+# IMAGE PREVIEW
 # ==========================
 st.subheader("🖼️ Image Preview")
 
@@ -73,7 +74,7 @@ else:
     st.warning("Image folder not found. Upload test_images to view previews.")
 
 # ==========================
-# 🧩 SUMMARY STATISTICS
+# SUMMARY STATISTICS (UPGRADED WITH PLOTLY)
 # ==========================
 st.subheader("📈 Summary Statistics")
 
@@ -84,10 +85,38 @@ summary = (
       .sort_values("count", ascending=False)
 )
 
-st.bar_chart(summary.set_index("predicted_class_name"))
+# Creating a professional Bar Chart with Gradient Orange colors
+fig = px.bar(
+    summary,
+    x='predicted_class_name',
+    y='count',
+    color='count', 
+    color_continuous_scale='Oranges', 
+    text='count',
+    labels={'predicted_class_name': 'Category', 'count': 'Quantity'}
+)
+
+# Enhancing fonts and layout for presentation
+fig.update_layout(
+    xaxis_title=None,
+    yaxis_title="Total Count",
+    font=dict(size=18), # Larger font for readability
+    plot_bgcolor='rgba(0,0,0,0)', 
+    coloraxis_showscale=False,
+    height=500
+)
+
+fig.update_traces(
+    textposition='outside', 
+    textfont_size=20, # Larger font for numbers on top of bars
+    marker_line_color='rgb(140, 45, 4)', 
+    marker_line_width=1.5
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 # ==========================
-# 📅 FOOTER
+# FOOTER
 # ==========================
 st.markdown("---")
 st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")

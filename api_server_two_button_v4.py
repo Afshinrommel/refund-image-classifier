@@ -55,10 +55,23 @@ except Exception:
 # ======================================================
 # LOAD CLASS MAP
 # ======================================================
+ # ======================================================
+ 
+print(f"DEBUG: Python is looking in: {os.getcwd()}")
+
 if os.path.exists(CLASS_MAP_FILENAME):
-    with open(CLASS_MAP_FILENAME) as f:
-        index_to_class = {v: k for k, v in json.load(f).items()}
+    try:
+        with open(CLASS_MAP_FILENAME) as f:
+            data = json.load(f)
+  
+            index_to_class = {int(v): k for k, v in data.items()}
+            print(f"✅ Success: Loaded {len(index_to_class)} classes from JSON.")
+    except Exception as e:
+        print(f"❌ Error reading JSON: {e}")
+        index_to_class = None
 else:
+    
+    print(f"❌ Error: File '{CLASS_MAP_FILENAME}' NOT FOUND in this folder!")
     index_to_class = None
 
 # ======================================================

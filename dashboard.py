@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-
-```python
-=======
->>>>>>> 5e15132 (final_v4)
 import streamlit as st
 import pandas as pd
 import os
@@ -165,10 +160,4 @@ st.plotly_chart(fig, use_container_width=True)
 # FOOTER
 # ==========================
 st.markdown("---")
-<<<<<<< HEAD
 st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")
-
- 
-=======
-st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")
->>>>>>> 5e15132 (final_v4)

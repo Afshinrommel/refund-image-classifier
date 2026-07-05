@@ -160,8 +160,4 @@ st.plotly_chart(fig, use_container_width=True)
 # FOOTER
 # ==========================
 st.markdown("---")
-<<<<<<< HEAD
 st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")
-=======
-st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")
->>>>>>> d9e3cee88fab8c39a6488d2234a9e8227cb4f7df

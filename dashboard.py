@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 
 ```python
+=======
+>>>>>>> 5e15132 (final_v4)
 import streamlit as st
 import pandas as pd
 import os
@@ -9,7 +12,7 @@ import plotly.express as px
 import re
 
 # ==========================
-# ⚙️ CONFIGURATION
+# CONFIGURATION
 # ==========================
 PREDICTIONS_DIR = "predictions"
 IMAGES_DIR = "test_images" 
@@ -24,7 +27,7 @@ st.title("🧾 Refund Item Classification Dashboard")
 st.caption("Automatically generated predictions from the nightly/batch process")
 
 # ==========================
-# 🗂️ LOAD AVAILABLE CSV FILES
+# LOAD AVAILABLE CSV FILES
 # ==========================
 if not os.path.exists(PREDICTIONS_DIR):
     st.warning("No predictions folder found yet.")
@@ -40,7 +43,7 @@ if not csv_files:
     st.stop()
 
 # ==========================
-# 📅 SELECT WHICH RUN TO VIEW
+# SELECT WHICH RUN TO VIEW
 # ==========================
 selected_csv = st.selectbox("Select prediction run:", csv_files)
 csv_path = os.path.join(PREDICTIONS_DIR, selected_csv)
@@ -48,16 +51,14 @@ csv_path = os.path.join(PREDICTIONS_DIR, selected_csv)
 df = pd.read_csv(csv_path)
 
 # ==========================================
-# 🔍 METADATA PARSING (Customer Info Extraction)
+# METADATA PARSING (Customer Info Extraction)
 # ==========================================
 def extract_customer_info(filename):
-    # Regex pattern to extract name and ID from conventions like watch_9_Afshin_22222.png
     match = re.search(r'_(?P<name>[a-zA-Z]+)_(?P<id>\d+)\.', filename)
     if match:
         return match.group('name'), match.group('id')
     return "Unknown", "Unknown"
 
-# Apply parsing logic to generate new metadata columns
 parsed_info = df['filename'].apply(extract_customer_info)
 df['Customer Name'] = [info[0] for info in parsed_info]
 df['Customer ID'] = [info[1] for info in parsed_info]
@@ -65,7 +66,7 @@ df['Customer ID'] = [info[1] for info in parsed_info]
 st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 
 # ==========================================
-# 🚨 LATEST REFUND (KPI Summary Card)
+# LATEST REFUND (KPI Summary Card)
 # ==========================================
 st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
@@ -78,20 +79,19 @@ st.info(
 )
 
 # ==========================================
-# 👥 SIDEBAR FILTER (Customer Segmentation)
+# SIDEBAR FILTER (Customer Segmentation)
 # ==========================================
 st.sidebar.header("🔍 Filter Options")
 all_customers = sorted(df['Customer Name'].unique())
 selected_customer = st.sidebar.selectbox("Filter by Customer Name:", ["All Customers"] + all_customers)
 
-# Dynamic dataframe filtering based on dropdown selection
 if selected_customer != "All Customers":
     display_df = df[df['Customer Name'] == selected_customer]
 else:
     display_df = df
 
 # ==========================
-# 📊 DISPLAY DATAFRAME
+# DISPLAY DATAFRAME
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
 st.dataframe(
@@ -100,7 +100,7 @@ st.dataframe(
 )
 
 # ==========================
-# 🖼️ IMAGE PREVIEW
+# IMAGE PREVIEW
 # ==========================
 st.subheader("🖼️ Image Preview")
 
@@ -123,7 +123,7 @@ else:
     st.warning("Image folder not found. Upload test_images to view previews.")
 
 # ==========================
-# 🧩 SUMMARY STATISTICS
+# SUMMARY STATISTICS
 # ==========================
 st.subheader(f"📈 Summary Statistics ({selected_customer})")
 
@@ -134,7 +134,6 @@ summary = (
       .sort_values("count", ascending=False)
 )
 
-# Render Plotly bar chart with custom large fonts for presentation clarity
 fig = px.bar(
     summary,
     x='predicted_class_name',
@@ -163,9 +162,13 @@ fig.update_traces(
 st.plotly_chart(fig, use_container_width=True)
 
 # ==========================
-# 📅 FOOTER
+# FOOTER
 # ==========================
 st.markdown("---")
+<<<<<<< HEAD
 st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")
 
  
+=======
+st.caption(f"Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')} | Streamlit Dashboard by Refund AI System")
+>>>>>>> 5e15132 (final_v4)

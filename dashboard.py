@@ -5,12 +5,15 @@ from datetime import datetime
 from PIL import Image
 import plotly.express as px
 import re
+import gdown
 
 # ==========================
 # CONFIGURATION
 # ==========================
 PREDICTIONS_DIR = "predictions"
 IMAGES_DIR = "test_images" 
+# Direct link to the customer test images folder in Google Drive
+TEST_FOLDER_URL = "https://drive.google.com/drive/folders/1VUYS-Ldx--bbSbQDoJ5XRj-nFV-aKKnc?usp=drive_link"
 
 st.set_page_config(
     page_title="Refund Item Classifier Dashboard",
@@ -95,27 +98,32 @@ st.dataframe(
 )
 
 # ==========================
-# IMAGE PREVIEW
+# IMAGE PREVIEW & GOOGLE DRIVE SYNC
 # ==========================
 st.subheader("🖼️ Image Preview")
 
-if os.path.exists(IMAGES_DIR):
-    selected_image = st.selectbox("Choose an image to preview:", display_df["filename"].tolist())
-    img_path = os.path.join(IMAGES_DIR, selected_image)
+selected_image = st.selectbox("Choose an image to preview:", display_df["filename"].tolist())
+img_path = os.path.join(IMAGES_DIR, selected_image)
 
-    if os.path.exists(img_path):
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.image(Image.open(img_path), caption=selected_image, use_container_width=True)
-        with col2:
-            row = df[df["filename"] == selected_image].iloc[0]
-            st.markdown(f"**Customer:** {row['Customer Name']} (ID: {row['Customer ID']})")
-            st.markdown(f"**Predicted Class:** {row['predicted_class_name']}")
-            st.markdown(f"**Confidence:** {row['confidence'] * 100:.2f}%")
-    else:
-        st.warning(f"Image not found locally: {img_path}")
+# Automatically download images from Google Drive if they are missing in Codespace
+if not os.path.exists(img_path):
+    with st.spinner("Downloading customer images from Google Drive... Please wait."):
+        try:
+            gdown.download_folder(url=TEST_FOLDER_URL, output=IMAGES_DIR, quiet=True, use_cookies=False)
+        except Exception as e:
+            st.error(f"Failed to download images from Google Drive: {str(e)}")
+
+if os.path.exists(img_path):
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.image(Image.open(img_path), caption=selected_image, use_container_width=True)
+    with col2:
+        row = df[df["filename"] == selected_image].iloc[0]
+        st.markdown(f"**Customer:** {row['Customer Name']} (ID: {row['Customer ID']})")
+        st.markdown(f"**Predicted Class:** {row['predicted_class_name']}")
+        st.markdown(f"**Confidence:** {row['confidence'] * 100:.2f}%")
 else:
-    st.warning("Image folder not found. Upload test_images to view previews.")
+    st.warning("Image could not be loaded. Please ensure the Google Drive folder contains this file.")
 
 # ==========================
 # SUMMARY STATISTICS

@@ -69,11 +69,15 @@ st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
 latest_row = df.iloc[-1]
+
+# Extract the real Google Drive upload timestamp from the new column
+upload_time = latest_row.get('gdrive_upload_time', 'Unknown')
+
 st.info(
     f"📦 **Latest Item:** `{latest_row['predicted_class_name']}` | "
     f"👤 **Customer:** `{latest_row['Customer Name']}` (ID: {latest_row['Customer ID']}) | "
     f"🎯 **Confidence:** `{latest_row['confidence'] * 100:.2f}%` | "
-    f"⏱️ **Timestamp:** `{latest_row['timestamp']}`"
+    f"⏱️ **Upload Time (Drive):** `{upload_time}`"
 )
 
 # ==========================================
@@ -93,7 +97,7 @@ else:
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
 st.dataframe(
-    display_df[['filename', 'Customer Name', 'Customer ID', 'true_label', 'predicted_class_name', 'is_correct', 'confidence', 'timestamp']], 
+    display_df[['filename', 'Customer Name', 'Customer ID', 'true_label', 'predicted_class_name', 'is_correct', 'confidence', 'gdrive_upload_time', 'timestamp']], 
     use_container_width=True
 )
 

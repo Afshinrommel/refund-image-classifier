@@ -70,8 +70,8 @@ st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
 latest_row = df.iloc[-1]
 
-# Extract the real Google Drive upload timestamp from the new column
-upload_time = latest_row.get('gdrive_upload_time', 'Unknown')
+# Safe extraction of upload time for the KPI card to prevent KeyError
+upload_time = latest_row.get('gdrive_upload_time', 'N/A') if 'gdrive_upload_time' in df.columns else 'N/A'
 
 st.info(
     f"📦 **Latest Item:** `{latest_row['predicted_class_name']}` | "
@@ -88,16 +88,27 @@ all_customers = sorted(df['Customer Name'].unique())
 selected_customer = st.sidebar.selectbox("Filter by Customer Name:", ["All Customers"] + all_customers)
 
 if selected_customer != "All Customers":
-    display_df = df[df['Customer Name'] == selected_customer]
+    display_df = df[df['Customer Name'] == selected_customer].copy()
 else:
-    display_df = df
+    display_df = df.copy()
 
 # ==========================
 # DISPLAY DATAFRAME
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
+
+# Dynamically handle missing gdrive_upload_time to prevent KeyError
+if 'gdrive_upload_time' not in display_df.columns:
+    display_df['gdrive_upload_time'] = "N/A"
+
+columns_to_display = [
+    'filename', 'Customer Name', 'Customer ID', 'true_label', 
+    'predicted_class_name', 'is_correct', 'confidence', 
+    'gdrive_upload_time', 'timestamp'
+]
+
 st.dataframe(
-    display_df[['filename', 'Customer Name', 'Customer ID', 'true_label', 'predicted_class_name', 'is_correct', 'confidence', 'gdrive_upload_time', 'timestamp']], 
+    display_df[columns_to_display], 
     use_container_width=True
 )
 

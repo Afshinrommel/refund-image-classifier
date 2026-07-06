@@ -108,11 +108,21 @@ df['Customer ID'] = [info[1] for info in parsed_info]
 st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 
 # ==========================================
-# LATEST REFUND (KPI Summary Card)
+# LATEST REFUND (KPI Summary Card - Dynamically Sorted)
 # ==========================================
 st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
-latest_row = df.iloc[-1]
+
+# Programmatically detect the absolute newest record based on the actual upload time
+try:
+    parsed_dates = pd.to_datetime(df['gdrive_upload_time'], errors='coerce')
+    if parsed_dates.notna().any():
+        latest_row = df.loc[parsed_dates.idxmax()]
+    else:
+        latest_row = df.iloc[-1]
+except Exception:
+    latest_row = df.iloc[-1]
+
 upload_time = latest_row.get('gdrive_upload_time', 'N/A')
 
 st.info(

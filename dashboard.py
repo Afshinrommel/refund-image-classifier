@@ -125,8 +125,10 @@ except Exception:
 
 upload_time = latest_row.get('gdrive_upload_time', 'N/A')
 
+# Formatted to explicitly contain both the True Item label and the AI's Predicted Class
 st.info(
-    f"📦 **Latest Item:** `{latest_row['predicted_class_name']}` | "
+    f"📦 **True Item:** `{latest_row['true_label']}` | "
+    f"🧠 **Predicted Class:** `{latest_row['predicted_class_name']}` | "
     f"👤 **Customer:** `{latest_row['Customer Name']}` (ID: {latest_row['Customer ID']}) | "
     f"🎯 **Confidence:** `{latest_row['confidence'] * 100:.2f}%` | "
     f"⏱️ **Upload Time (Drive):** `{upload_time}`"
@@ -145,9 +147,14 @@ else:
     display_df = df.copy()
 
 # ==========================
-# DISPLAY DATAFRAME
+# DISPLAY DATAFRAME (Sorted Chronologically Descending)
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
+
+# Chronological sorting: Newest upload timestamps on top, legacy/missing dates at the bottom
+if 'gdrive_upload_time' in display_df.columns:
+    display_df['sort_date'] = pd.to_datetime(display_df['gdrive_upload_time'], errors='coerce')
+    display_df = display_df.sort_values(by='sort_date', ascending=False, na_position='last').drop(columns=['sort_date'])
 
 columns_to_display = [
     'filename', 'Customer Name', 'Customer ID', 'true_label', 

@@ -113,9 +113,9 @@ st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
 
-# Programmatically detect the absolute newest record based on the actual upload time
+# Fixed: Explicitly use format='mixed' to resolve mixed time formats securely
 try:
-    parsed_dates = pd.to_datetime(df['gdrive_upload_time'], errors='coerce')
+    parsed_dates = pd.to_datetime(df['gdrive_upload_time'], format='mixed', errors='coerce')
     if parsed_dates.notna().any():
         latest_row = df.loc[parsed_dates.idxmax()]
     else:
@@ -151,9 +151,9 @@ else:
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
 
-# Chronological sorting: Newest upload timestamps on top, legacy/missing dates at the bottom
+# Fixed: Explicitly use format='mixed' to sort files with dates and times correctly at the top
 if 'gdrive_upload_time' in display_df.columns:
-    display_df['sort_date'] = pd.to_datetime(display_df['gdrive_upload_time'], errors='coerce')
+    display_df['sort_date'] = pd.to_datetime(display_df['gdrive_upload_time'], format='mixed', errors='coerce')
     display_df = display_df.sort_values(by='sort_date', ascending=False, na_position='last').drop(columns=['sort_date'])
 
 columns_to_display = [

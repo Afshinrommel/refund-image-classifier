@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import tensorflow as tf
+from datetime import datetime
 from flask import Flask, request, jsonify, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from tensorflow.keras.preprocessing import image
@@ -278,8 +279,10 @@ def upload_drive_only():
     local_path = os.path.join(UPLOAD_FOLDER, secure_filename(img_file.filename))
     img_file.save(local_path)
 
+    # Automatically generate a unique web-safe timestamp for full automation
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_name, ext = os.path.splitext(img_file.filename)
-    filename_with_customer = f"{base_name}_{safe_name}_{safe_id}{ext}"
+    filename_with_customer = f"{base_name}_{safe_name}_{safe_id}_{current_time}{ext}"
 
     try:
         result = upload_to_drive(local_path, filename_with_customer)

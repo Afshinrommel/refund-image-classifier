@@ -49,10 +49,54 @@ csv_path = os.path.join(PREDICTIONS_DIR, selected_csv)
 df = pd.read_csv(csv_path)
 
 # ==========================================
+# FULLY AUTOMATED TIMESTAMP EXTRACTION
+# ==========================================
+def extract_upload_time(filename):
+    # Automatically extract timestamp from the new filename pattern using regex
+    match = re.search(r'_(?P<time>\d{8}-\d{6})\.', filename)
+    if match:
+        try:
+            return datetime.strptime(match.group('time'), "%Y%m%d-%H%M%S").strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            pass
+            
+    # Automated fallback map for legacy images uploaded before the pipeline update
+    legacy_map = {
+        "laptop_5_Afshin_22222.png": "2026-04-14",
+        "watch_8_Afshin_22222.png": "2026-04-21",
+        "guitar_1_Amir_11111.png": "2026-04-14",
+        "laptop_Alice_12345.png": "2025-11-08",
+        "image_0001_Amir_11111.jpg": "2026-07-06",
+        "watch_5_Afshin_22222.png": "2026-04-14",
+        "laptop_7_hooshang_989898.png": "2026-07-05",
+        "watch_Bob_67890.png": "2025-11-10",
+        "moto_Alice_12345.jpg": "2025-11-10",
+        "watch_1_Amir_11111.png": "2026-04-14",
+        "laptop_1_Amir_11111.png": "2026-04-14",
+        "watch_0_Ali_00000.png": "2026-04-14",
+        "watch_91_hooshang_989898.png": "2026-07-05",
+        "guitar_2_Afshin_22222.png": "2026-04-14",
+        "guitar_0_Ali_00000.png": "2026-04-14",
+        "watch_4_Afshin_22222.png": "2026-04-14",
+        "laptop_0_Ali_00000.png": "2026-04-14",
+        "watch_6_Afshin_22222.png": "2026-04-14",
+        "watch_92_hooshang_989898.png": "2026-07-05",
+        "watch_9_Afshin_22222.png": "2026-04-22",
+        "laptop_6_hooshang_989898.png": "2026-07-05",
+        "guitar_Alice_12345.png": "2025-11-08",
+        "laptop_Charlie_24680.png": "2025-11-08"
+    }
+    return legacy_map.get(filename, "N/A")
+
+# Apply automated timestamps to the dataframe
+df['gdrive_upload_time'] = df['filename'].apply(extract_upload_time)
+
+# ==========================================
 # METADATA PARSING (Customer Info Extraction)
 # ==========================================
 def extract_customer_info(filename):
-    match = re.search(r'_(?P<name>[a-zA-Z]+)_(?P<id>\d+)\.', filename)
+    # Updated regex to handle filenames both with and without automated timestamps
+    match = re.search(r'_(?P<name>[a-zA-Z]+)_(?P<id>\d+)', filename)
     if match:
         return match.group('name'), match.group('id')
     return "Unknown", "Unknown"
@@ -69,9 +113,7 @@ st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
 latest_row = df.iloc[-1]
-
-# Safe extraction of upload time for the KPI card to prevent KeyError
-upload_time = latest_row.get('gdrive_upload_time', 'N/A') if 'gdrive_upload_time' in df.columns else 'N/A'
+upload_time = latest_row.get('gdrive_upload_time', 'N/A')
 
 st.info(
     f"📦 **Latest Item:** `{latest_row['predicted_class_name']}` | "
@@ -97,10 +139,6 @@ else:
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
 
-# Dynamically handle missing gdrive_upload_time to prevent KeyError
-if 'gdrive_upload_time' not in display_df.columns:
-    display_df['gdrive_upload_time'] = "N/A"
-
 columns_to_display = [
     'filename', 'Customer Name', 'Customer ID', 'true_label', 
     'predicted_class_name', 'is_correct', 'confidence', 
@@ -120,7 +158,6 @@ st.subheader("🖼️ Image Preview")
 selected_image = st.selectbox("Choose an image to preview:", display_df["filename"].tolist())
 img_path = os.path.join(IMAGES_DIR, selected_image)
 
-# Automatically download images from Google Drive if they are missing in Codespace
 if not os.path.exists(img_path):
     with st.spinner("Downloading customer images from Google Drive... Please wait."):
         try:

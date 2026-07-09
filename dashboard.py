@@ -52,50 +52,22 @@ df = pd.read_csv(csv_path)
 # FULLY AUTOMATED TIMESTAMP EXTRACTION
 # ==========================================
 def extract_upload_time(filename):
-    # Automatically extract timestamp from the new filename pattern using regex
+    # Streamlined regex parsing for uniform timestamp format
     match = re.search(r'_(?P<time>\d{8}-\d{6})\.', filename)
     if match:
         try:
             return datetime.strptime(match.group('time'), "%Y%m%d-%H%M%S").strftime("%Y-%m-%d %H:%M:%S")
         except:
             pass
-            
-    # Automated fallback map for legacy images uploaded before the pipeline update
-    legacy_map = {
-        "laptop_5_Afshin_22222.png": "2026-04-14",
-        "watch_8_Afshin_22222.png": "2026-04-21",
-        "guitar_1_Amir_11111.png": "2026-04-14",
-        "laptop_Alice_12345.png": "2025-11-08",
-        "image_0001_Amir_11111.jpg": "2026-07-06",
-        "watch_5_Afshin_22222.png": "2026-04-14",
-        "laptop_7_hooshang_989898.png": "2026-07-05",
-        "watch_Bob_67890.png": "2025-11-10",
-        "moto_Alice_12345.jpg": "2025-11-10",
-        "watch_1_Amir_11111.png": "2026-04-14",
-        "laptop_1_Amir_11111.png": "2026-04-14",
-        "watch_0_Ali_00000.png": "2026-04-14",
-        "watch_91_hooshang_989898.png": "2026-07-05",
-        "guitar_2_Afshin_22222.png": "2026-04-14",
-        "guitar_0_Ali_00000.png": "2026-04-14",
-        "watch_4_Afshin_22222.png": "2026-04-14",
-        "laptop_0_Ali_00000.png": "2026-04-14",
-        "watch_6_Afshin_22222.png": "2026-04-14",
-        "watch_92_hooshang_989898.png": "2026-07-05",
-        "watch_9_Afshin_22222.png": "2026-04-22",
-        "laptop_6_hooshang_989898.png": "2026-07-05",
-        "guitar_Alice_12345.png": "2025-11-08",
-        "laptop_Charlie_24680.png": "2025-11-08"
-    }
-    return legacy_map.get(filename, "N/A")
+    return "N/A"
 
-# Apply automated timestamps to the dataframe
+# Apply streamlined automated timestamps to the dataframe
 df['gdrive_upload_time'] = df['filename'].apply(extract_upload_time)
 
 # ==========================================
 # METADATA PARSING (Customer Info Extraction)
 # ==========================================
 def extract_customer_info(filename):
-    # Updated regex to handle filenames both with and without automated timestamps
     match = re.search(r'_(?P<name>[a-zA-Z]+)_(?P<id>\d+)', filename)
     if match:
         return match.group('name'), match.group('id')
@@ -108,14 +80,13 @@ df['Customer ID'] = [info[1] for info in parsed_info]
 st.success(f"Loaded {len(df)} predictions from: `{selected_csv}`")
 
 # ==========================================
-# LATEST REFUND (KPI Summary Card - Dynamically Sorted)
+# LATEST REFUND (KPI Summary Card - Sorted)
 # ==========================================
 st.markdown("---")
 st.subheader("🔔 Latest Processed Refund")
 
-# Fixed: Explicitly use format='mixed' to resolve mixed time formats securely
 try:
-    parsed_dates = pd.to_datetime(df['gdrive_upload_time'], format='mixed', errors='coerce')
+    parsed_dates = pd.to_datetime(df['gdrive_upload_time'], errors='coerce')
     if parsed_dates.notna().any():
         latest_row = df.loc[parsed_dates.idxmax()]
     else:
@@ -125,7 +96,6 @@ except Exception:
 
 upload_time = latest_row.get('gdrive_upload_time', 'N/A')
 
-# Formatted to explicitly contain both the True Item label and the AI's Predicted Class
 st.info(
     f"📦 **True Item:** `{latest_row['true_label']}` | "
     f"🧠 **Predicted Class:** `{latest_row['predicted_class_name']}` | "
@@ -151,9 +121,8 @@ else:
 # ==========================
 st.subheader(f"📊 Predictions Table ({selected_customer})")
 
-# Fixed: Explicitly use format='mixed' to sort files with dates and times correctly at the top
 if 'gdrive_upload_time' in display_df.columns:
-    display_df['sort_date'] = pd.to_datetime(display_df['gdrive_upload_time'], format='mixed', errors='coerce')
+    display_df['sort_date'] = pd.to_datetime(display_df['gdrive_upload_time'], errors='coerce')
     display_df = display_df.sort_values(by='sort_date', ascending=False, na_position='last').drop(columns=['sort_date'])
 
 columns_to_display = [

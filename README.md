@@ -1,67 +1,17 @@
-# refund-image-classifier
+Automated Refund Item Classification Pipeline
+Repository Architecture & Workflow
+api_server_two_button_v4.py: This script is responsible for running the client-facing web application. It utilizes Google OAuth client configuration JSONs to perform secure user authentication based on the user's registered Google email address. Once authenticated, the server grants the client permission to upload their items, automatically embedding web-safe execution timestamps into the file-naming convention for database-free metadata tracking.
 
-This repository is a ready-made example for automated image classification prediction using GitHub Actions.
+.github/workflows/main.yml: This configuration manages the automated MLOps batch processing pipeline inside GitHub Actions. Scheduled to execute automatically every 24 hours (nightly batch), it securely connects to the Google Drive staging folder, ingests the newly uploaded customer images, runs the deep learning inference model to identify the refund item categories, and appends the structured results into the centralized predictions.csv log.
 
-Repository Contents
+dashboard.py (Added Section): The live monitoring and analytics frontend built using Streamlit. It consumes the batch inference results from predictions.csv and offers the following production-grade capabilities:
 
-main.py: A script that processes new images in the caltech_split/val/ directory and appends the results to daily_predictions.csv.
+Dynamic Chronological Sorting: Automatically formats and sorts the prediction table in descending order, ensuring the absolute newest refund requests are always displayed at the very top.
 
-requirements.txt: The required dependencies.
+Recent Item Summary: This card automatically catches and displays the newest refund request in the system. It shows the true item, the AI's predicted category, customer info, model confidence, and the exact upload date and time.
 
-.github/workflows/daily-run.yml: A workflow that runs automatically every night at 21:00 UTC.
+Granular Customer Segmentation: Features an interactive sidebar filter that allows administrators to segment the entire dashboard, charts, and image previews by specific customer names.
 
-Note: The model file caltech_model.h5 is not included in this ZIP (the model is large). Please upload the model file manually into the root of the repository after pushing this repo.
-ا
-caltech_split/
-  └─ val/
-      ├─ airplanes/
-      │   ├─ img1.jpg
-      │   └─ ...
-      ├─ motorbikes/
-      └─ ...
-```
+Automated Cloud Sync & Image Preview: Integrates with gdown to check the local environment and automatically pull missing customer images directly from Google Drive for real-time visual inspection and auditing.
 
-Each subfolder inside caltech_split/val/ is considered one class.
-Quick Setup (Local)
-
-
-Place the caltech_model.h5 model file in the root of the repository.
-
-
-Arrange the dataset folder according to the structure shown above.
-
-
-Create a Python environment and install the dependencies:
-
-
-```bash
-pip install -r requirements.txt
-```
-python main.py
-Setup on GitHub
-Create a new repository and push the contents of this ZIP.
-
-Add the caltech_model.h5 model file to the root of the repository (use Git LFS if the model is larger than GitHub’s limit).
-
-In the repository, go to the Actions tab; the Daily Batch Prediction workflow will run automatically every night at 21:00 UTC.
-
-After execution, the output file daily_predictions.csv will be available as an artifact in each workflow run.
-
-Manual Workflow Execution
-In the Actions tab, click the workflow and press Run workflow (GitHub allows manual execution).
-
-Notes and Recommendations
-If the model is very large, use Git LFS or upload the model to Google Drive / S3 and modify the code to download it.
-
-To generate more detailed logs, you can add logging or send output to a database.
-
-If you want to save results daily in a separate table, you can modify main.py so that the output filename includes the date.If you want to store the results on a daily basis in a separate table, main.py can be modified so that the output file name includes the date.
-
-
-
-
-
-
-
-
-
+Refund Charts: Shows a clean bar graph that displays the total number of items predicted for each category across the platform.

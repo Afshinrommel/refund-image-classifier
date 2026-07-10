@@ -12,7 +12,7 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
 import re
 
-# Added for GitHub Actions compatibility without display server
+# Configured for headless server compatibility in GitHub Actions
 import matplotlib
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
@@ -74,6 +74,7 @@ def generate_visual_report(df):
     plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140, 
             colors=colors, explode=[0.05] * len(counts), shadow=True)
     
+    # Force GitHub cache update by adding exact runtime to title
     update_time = time.strftime("%H:%M:%S")
     plt.title(f'Model Classification Accuracy (Updated: {update_time})')
     
@@ -109,7 +110,7 @@ def run_batch():
 
     csv_file = os.path.join(PREDICTION_DIR, "predictions.csv")
     
-    # Check for existing predictions to avoid reprocessing
+    # Load history to determine already processed files before loop execution
     processed_files = set()
     existing_df = pd.DataFrame()
     if os.path.exists(csv_file):
@@ -127,7 +128,7 @@ def run_batch():
         if not fname.lower().endswith((".jpg", ".png", ".jpeg")):
             continue
 
-        # Skip files that have already been processed in previous batch runs
+        # Skip execution if the file is already recorded in the database
         if fname in processed_files:
             continue
 
@@ -152,7 +153,7 @@ def run_batch():
         })
         print(f"Processed: {fname} -> Correct: {is_correct}")
 
-    # Merge new predictions with legacy log instead of overwriting
+    # Append new data rows to history instead of performing a full overwrite
     if new_records:
         new_df = pd.DataFrame(new_records)
         if not existing_df.empty:

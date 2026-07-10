@@ -121,6 +121,12 @@ def run_batch():
         except Exception as e:
             print(f"Warning: Could not read existing CSV, starting fresh. Error: {e}")
 
+    print("=" * 60)
+    print("CSV exists:", os.path.exists(csv_file))
+    print("CSV rows:", len(existing_df))
+    print("Processed files:", len(processed_files))
+    print("=" * 60)
+
     new_records = []
     
     for fname in os.listdir(TEST_DIR):
@@ -129,7 +135,9 @@ def run_batch():
             continue
 
         # Skip execution if the file is already recorded in the database
+        print(f"Checking: {fname} -> Already processed? {fname in processed_files}")
         if fname in processed_files:
+            print(f"Skipping: {fname}")
             continue
 
         true_label_raw = re.split(r'[_|-]', fname)[0].lower()

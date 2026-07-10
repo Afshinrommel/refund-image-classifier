@@ -11,6 +11,9 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import gdown
 import re
+import time
+from datetime import datetime  
+import tensorflow as tf
 
 # Configured for headless server compatibility in GitHub Actions
 import matplotlib
@@ -140,6 +143,15 @@ def run_batch():
             print(f"Skipping: {fname}")
             continue
 
+        # Extract embedded upload time from filename string
+        upload_time = "N/A"
+        match_time = re.search(r'_(?P<time>\d{8}-\d{6})', fname)
+        if match_time:
+            try:
+                upload_time = datetime.strptime(match_time.group('time'), "%Y%m%d-%H%M%S").strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+
         true_label_raw = re.split(r'[_|-]', fname)[0].lower()
         
         predicted_class, confidence = predict_image(model, fpath, index_to_class)
@@ -157,6 +169,7 @@ def run_batch():
             "predicted_class_name": predicted_class,
             "is_correct": "YES" if is_correct else "NO",
             "confidence": round(confidence, 4),
+            "upload_time": upload_time,  
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
         })
         print(f"Processed: {fname} -> Correct: {is_correct}")

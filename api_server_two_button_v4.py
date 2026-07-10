@@ -248,14 +248,32 @@ def predict():
             preds = model.predict(x)
         else:
             preds = list(infer(tf.constant(x, dtype=tf.float32)).values())[0].numpy()
-        class_id = int(np.argmax(preds))
-        confidence = float(np.max(preds))
-        class_name = index_to_class[class_id] if index_to_class else str(class_id)
+            
+        preds_1d = preds[0]
+        top_indices = np.argsort(preds_1d)[-3:][::-1]
+        
+        top_3_predictions = []
+        for rank, idx in enumerate(top_indices, 1):
+            c_id = int(idx)
+            conf = float(preds_1d[idx])
+            c_name = index_to_class[c_id] if index_to_class else str(c_id)
+            top_3_predictions.append({
+                "rank": rank,
+                "class_name": c_name,
+                "confidence": f"{conf * 100:.2f}%"
+            })
+            
+        class_name = top_3_predictions[0]["class_name"]
+        confidence = float(preds_1d[top_indices[0]])
     finally:
         if os.path.exists(local_path):
             os.remove(local_path)
 
-    return jsonify({"predicted_class": class_name, "confidence": confidence})
+    return jsonify({
+        "predicted_class": class_name, 
+        "confidence": confidence,
+        "top_3_probabilities": top_3_predictions
+    })
 
 # ======================================================
 # UPLOAD TO DRIVE (WITH SAFE CUSTOMER INFO)

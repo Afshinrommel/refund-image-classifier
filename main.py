@@ -69,7 +69,7 @@ def generate_visual_report(df):
     
     counts = df['is_correct'].value_counts()
     labels = counts.index
-    colors = ['#2ecc71', '#e74c3c'] 
+    colors = ['#2ecc71', "#e66455"] 
     
     plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140, 
             colors=colors, explode=[0.05] * len(counts), shadow=True)

@@ -125,15 +125,21 @@ if 'gdrive_upload_time' in display_df.columns:
     display_df['sort_date'] = pd.to_datetime(display_df['gdrive_upload_time'], errors='coerce')
     display_df = display_df.sort_values(by='sort_date', ascending=False, na_position='last').drop(columns=['sort_date'])
 
+# Important: Reset index to ensure row selection maps correctly
+display_df = display_df.reset_index(drop=True)
+
 columns_to_display = [
     'filename', 'Customer Name', 'Customer ID', 'true_label', 
     'predicted_class_name', 'is_correct', 'confidence', 
     'gdrive_upload_time', 'timestamp'
 ]
 
-st.dataframe(
+# Modification 1: Enable dataframe row selection
+selection_event = st.dataframe(
     display_df[columns_to_display], 
-    use_container_width=True
+    use_container_width=True,
+    on_select="rerun",           # Triggers app rerun on row click
+    selection_mode="single-row"  # Restricts selection to one row at a time
 )
 
 # ==========================
@@ -141,7 +147,26 @@ st.dataframe(
 # ==========================
 st.subheader("🖼️ Image Preview")
 
-selected_image = st.selectbox("Choose an image to preview:", display_df["filename"].tolist())
+# Modification 2: Check if the user has selected a row in the dataframe
+selected_rows = selection_event.selection.rows
+file_list = display_df["filename"].tolist()
+
+if selected_rows:
+    # Extract filename based on the clicked row index
+    clicked_index = selected_rows[0]
+    default_filename = display_df.iloc[clicked_index]["filename"]
+    selectbox_index = file_list.index(default_filename)
+else:
+    # Default to the first image if no row is selected
+    selectbox_index = 0
+
+# The selectbox is now synced with the dataframe selection
+selected_image = st.selectbox(
+    "Choose an image to preview (or click a row in the table above):", 
+    file_list,
+    index=selectbox_index
+)
+
 img_path = os.path.join(IMAGES_DIR, selected_image)
 
 if not os.path.exists(img_path):
@@ -162,7 +187,6 @@ if os.path.exists(img_path):
         st.markdown(f"**Confidence:** {row['confidence'] * 100:.2f}%")
 else:
     st.warning("Image could not be loaded. Please ensure the Google Drive folder contains this file.")
-
 # ==========================
 # SUMMARY STATISTICS
 # ==========================

@@ -8,3 +8,4 @@ matplotlib
 streamlit
 plotly
 Pillow
+pyarrow==15.0.2

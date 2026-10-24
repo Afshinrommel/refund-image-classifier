@@ -48,11 +48,11 @@ High return volumes in growing e-commerce businesses create operational bottlene
 
 Before running the application locally or in production, verify the presence of the following configuration files in the root directory:
 
-* **`client_secret.json`:** OAuth 2.0 client secrets file obtained from Google Cloud Console (APIs & Services > Credentials). Required by `api_server_two_button_v4.py` for customer authentication and Drive upload permissions.
-* **`customers.json`:** JSON array containing authorized user records (`{"name": "...", "id": "..."}`) used by `/validate_customer`.
-* **`class_indices.json`:** JSON mapping generated during training to decode numeric predictions into product category names.
-* **`final_model_caltech.h5`:** Pre-trained Keras model weights. If not placed locally, `main.py` downloads it automatically from Google Drive via `gdown`.
-* **Environment Variables:**
+- **`client_secret.json`:** OAuth 2.0 client secrets file obtained from Google Cloud Console (APIs & Services > Credentials). Required by `api_server_two_button_v4.py` for customer authentication and Drive upload permissions.
+- **`customers.json`:** JSON array containing authorized user records (`{"name": "...", "id": "..."}`) used by `/validate_customer`.
+- **`class_indices.json`:** JSON mapping generated during training to decode numeric predictions into product category names.
+- **`final_model_caltech.h5`:** Pre-trained Keras model weights. If not placed locally, `main.py` downloads it automatically from Google Drive via `gdown`.
+- **Environment Variables:**
   * `OAUTHLIB_INSECURE_TRANSPORT=1`: Required for local development over HTTP (`http://localhost:5000`).
   * `TF_USE_LEGACY_KERAS=1`: Ensures Keras 2 compatibility with TensorFlow 2.19.
 
@@ -64,21 +64,20 @@ Before running the application locally or in production, verify the presence of 
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Afshinrommel/refund-image-classifier.git
+git clone [https://github.com/Afshinrommel/refund-image-classifier.git](https://github.com/Afshinrommel/refund-image-classifier.git)
 cd refund-image-classifier
 ```
 
 ### 2. Create and Activate a Virtual Environment
 ```bash
+# Create virtual environment
 python -m venv venv
-# Windows (PowerShell):
-$env:OAUTHLIB_INSECURE_TRANSPORT="1"
 
-# Windows (Command Prompt):
-set OAUTHLIB_INSECURE_TRANSPORT=1
+# Windows (PowerShell / Command Prompt):
+venv\Scripts\activate
 
 # Linux / macOS:
-export OAUTHLIB_INSECURE_TRANSPORT=1
+source venv/bin/activate
 ```
 
 ### 3. Install Dependencies
@@ -93,21 +92,32 @@ pip install -r requirements.txt
 
 ### Step 1: Model Training (Optional / Offline)
 To re-train the classifier or generate fresh weights:
-* Open `image_refund_code.ipynb` in Google Colab or a local Jupyter environment.
-* Ensure your Kaggle API key (`kaggle.json`) is configured to pull the Caltech-101 dataset.
-* Run all cells to fine-tune MobileNetV2 and export `final_model_caltech.h5` and `class_indices.json`.
+- Open `image_refund_code.ipynb` in Google Colab or a local Jupyter environment.
+- Ensure your Kaggle API key (`kaggle.json`) is configured to pull the Caltech-101 dataset.
+- Run all cells to fine-tune MobileNetV2 and export `final_model_caltech.h5` and `class_indices.json`.
 
 ### Step 2: Running the Client-Facing Flask Server
-1. Start the Flask service:
+1. Set the OAuth transport environment variable to allow local HTTP testing:
+
    ```bash
-   export OAUTHLIB_INSECURE_TRANSPORT=1   # Linux/macOS
-   # set OAUTHLIB_INSECURE_TRANSPORT=1    # Windows CMD
+   # Windows (PowerShell):
+   $env:OAUTHLIB_INSECURE_TRANSPORT="1"
+
+   # Windows (Command Prompt):
+   set OAUTHLIB_INSECURE_TRANSPORT=1
+
+   # Linux / macOS:
+   export OAUTHLIB_INSECURE_TRANSPORT=1
+   ```
+
+2. Start the Flask application:
+   ```bash
    python api_server_two_button_v4.py
    ```
-2. Navigate to `http://localhost:5000/upload` in your browser.
-3. Click **"🔑 Authorize Google Drive"** to sign in with your Google test account.
-4. Enter an authorized customer name and ID (e.g., `Afshin` / `22222`) and click **"✅ Validate Customer"**.
-5. Select a product image:
+3. Navigate to `http://localhost:5000/upload` in your browser.
+4. Click **"🔑 Authorize Google Drive"** to sign in with your Google test account.
+5. Enter an authorized customer name and ID (e.g., `Afshin` / `22222`) and click **"✅ Validate Customer"**.
+6. Select a product image:
    * Click **"🔍 Predict"** for instant RAM inference.
    * Click **"☁️ Upload to Drive"** to stage the item for nightly processing.
 
@@ -123,15 +133,15 @@ Run the Streamlit analytics interface:
 ```bash
 streamlit run dashboard.py
 ```
-* **KPI Card:** View details of the most recently processed return.
-* **Customer Filter:** Filter data by customer in the sidebar to inspect individual return habits.
-* **Auditing:** Click any row in the prediction table to dynamically download and view the original item photo.
-* **Summary Charts:** Inspect the distribution of returned product categories.
+- **KPI Card:** View details of the most recently processed return.
+- **Customer Filter:** Filter data by customer in the sidebar to inspect individual return habits.
+- **Auditing:** Click any row in the prediction table to dynamically download and view the original item photo.
+- **Summary Charts:** Inspect the distribution of returned product categories.
 
 ---
 
 ## 🏗️ Architectural Decisions & Constraints
 
-* **Zero-SQL Metadata Persistence:** Customer IDs, names, and upload timestamps are directly encoded into uploaded filenames (e.g., `watch_Afshin_22222_20260709-182338.png`). Metadata is parsed using Regular Expressions, avoiding the overhead, licensing, and schema migrations of a traditional relational database.
-* **Staging Strategy:** Google Drive serves as a low-cost, serverless staging data lake for the MVP, replacing complex cloud object storage (such as AWS S3).
-* **Inference Decoupling:** Heavy deep learning classification is separated from the web server into a scheduled, off-peak batch runner (GitHub Actions), avoiding CPU starvation and latency during peak customer hours.
+- **Zero-SQL Metadata Persistence:** Customer IDs, names, and upload timestamps are directly encoded into uploaded filenames (e.g., `watch_Afshin_22222_20260709-182338.png`). Metadata is parsed using Regular Expressions, avoiding the overhead, licensing, and schema migrations of a traditional relational database.
+- **Staging Strategy:** Google Drive serves as a low-cost, serverless staging data lake for the MVP, replacing complex cloud object storage (such as AWS S3).
+- **Inference Decoupling:** Heavy deep learning classification is separated from the web server into a scheduled, off-peak batch runner (GitHub Actions), avoiding CPU starvation and latency during peak customer hours.

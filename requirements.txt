@@ -9,5 +9,5 @@ matplotlib
 streamlit
 plotly
 pyarrow==15.0.2
-google-auth-oauthlib
 google-api-python-client
+google-auth-oauthlib==1.0.0

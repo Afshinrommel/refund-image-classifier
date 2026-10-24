@@ -71,10 +71,14 @@ cd refund-image-classifier
 ### 2. Create and Activate a Virtual Environment
 ```bash
 python -m venv venv
-# On Linux/macOS:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
+# Windows (PowerShell):
+$env:OAUTHLIB_INSECURE_TRANSPORT="1"
+
+# Windows (Command Prompt):
+set OAUTHLIB_INSECURE_TRANSPORT=1
+
+# Linux / macOS:
+export OAUTHLIB_INSECURE_TRANSPORT=1
 ```
 
 ### 3. Install Dependencies

@@ -1,5 +1,6 @@
 tensorflow==2.19.0
 tf-keras==2.19.0
+flask==3.1.2
 pandas
 gdown
 numpy<2.0.0
@@ -7,5 +8,6 @@ Pillow
 matplotlib
 streamlit
 plotly
-Pillow
 pyarrow==15.0.2
+google-auth-oauthlib
+google-api-python-client

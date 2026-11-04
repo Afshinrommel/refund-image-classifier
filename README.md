@@ -76,10 +76,6 @@ python -m venv venv
 # Windows (PowerShell / Command Prompt):
 venv\Scripts\activate
 
-# Linux / macOS:
-source venv/bin/activate
-```
-
 ### 3. Install Dependencies
 ```bash
 python -m pip install --upgrade pip

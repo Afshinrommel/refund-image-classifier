@@ -64,7 +64,7 @@ Before running the application locally or in production, verify the presence of 
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/Afshinrommel/refund-image-classifier.git](https://github.com/Afshinrommel/refund-image-classifier.git)
+git clone https://github.com/Afshinrommel/refund-image-classifier.git
 cd refund-image-classifier
 ```
 

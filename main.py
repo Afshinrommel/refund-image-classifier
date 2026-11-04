@@ -57,10 +57,19 @@ def load_class_map():
         class_indices = json.load(f)
     return {int(v): k for k, v in class_indices.items()}
 
+class CustomInputLayer(tf.keras.layers.InputLayer):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("optional", None)
+        super().__init__(*args, **kwargs)
+
 def load_model_safely():
     print(f"Loading H5 model: {MODEL_PATH}")
     try:
-        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        model = tf.keras.models.load_model(
+            MODEL_PATH,
+            custom_objects={"InputLayer": CustomInputLayer},
+            compile=False
+        )
         print("SUCCESS: Model loaded successfully!")
         return model
     except Exception as e:

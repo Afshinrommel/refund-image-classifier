@@ -23,10 +23,12 @@ import matplotlib.pyplot as plt
 # ===============================
 # CONFIGURATION SECTION
 # ===============================
-MODEL_URL = "https://drive.google.com/uc?id=1fA5v1y4IM81dbOqOzNOfidjgfViPIizs"
+#MODEL_URL = "https://drive.google.com/uc?id=1fA5v1y4IM81dbOqOzNOfidjgfViPIizs"
+MODEL_URL = "https://drive.google.com/uc?id=1UCYJ58wL6oryJNFlZVuWsQu-posdpqCM"
 MODEL_PATH = "final_model_caltech.h5"
 
-CLASS_MAP_URL = "https://drive.google.com/uc?id=1uqqVbCuodTN6Nbc-isDhwnDjUqhWZTKc"
+#CLASS_MAP_URL = "https://drive.google.com/uc?id=1uqqVbCuodTN6Nbc-isDhwnDjUqhWZTKc"
+CLASS_MAP_URL = "https://drive.google.com/uc?id=1xzc09Fu-CLhsq0qdGvxRa-hUkCC4hn-h"
 CLASS_MAP_FILENAME = "class_indices.json"
 
 TEST_FOLDER_URL = "https://drive.google.com/drive/folders/1VUYS-Ldx--bbSbQDoJ5XRj-nFV-aKKnc?usp=drive_link"

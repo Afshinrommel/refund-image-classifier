@@ -101,9 +101,6 @@ To re-train the classifier or generate fresh weights:
 
    # Windows (Command Prompt):
    set OAUTHLIB_INSECURE_TRANSPORT=1
-
-   # Linux / macOS:
-   export OAUTHLIB_INSECURE_TRANSPORT=1
    ```
 
 2. Start the Flask application:

@@ -8,16 +8,16 @@ An end-to-end, decoupled MLOps system that automates the categorization of retur
 
 High return volumes in growing e-commerce businesses create operational bottlenecks and high costs when handled manually. This project replaces manual inspection with an automated, four-phase machine learning pipeline:
 
-1. **Phase 1: Offline Model Training (`image_refund_code.ipynb`)**
+1. **Phase 1: Offline Model Training (`image_refund_code.ipynb`)**  
    Downloads the Caltech-101 dataset via Kaggle API, performs data augmentation and transfer learning using MobileNetV2, fine-tunes deep convolutional layers, and exports deployment artifacts (`final_model_caltech.h5` and `class_indices.json`).
 
-2. **Phase 2: Client Web Interface & Ingestion (`api_server_two_button_v4.py`)**
-   A Flask web application running locally. It validates customer credentials against `customers.json`, runs real-time inference in memory (RAM), authenticates user access with Google OAuth 2.0 (`client_secret.json`), and uploads return photos to a Google Drive staging folder using a standardized filename schema.
+2. **Phase 2: Client Web Interface & Ingestion (`api_server_two_button_v4.py`)**  
+   A Flask web application running locally on Windows. It validates customer credentials against `customers.json`, runs real-time inference in memory (RAM), authenticates user access with Google OAuth 2.0 (`client_secret.json`), and uploads return photos to a Google Drive staging folder using a standardized filename schema.
 
-3. **Phase 3: Automated Nightly Batch Processing (`main.py` & GitHub Actions)**
+3. **Phase 3: Automated Nightly Batch Processing (`main.py` & GitHub Actions)**  
    An automated MLOps workflow (`.github/workflows/main.yml`) scheduled at 02:00 UTC. It downloads staging images and model artifacts from Google Drive using `gdown`, filters out previously processed files to prevent redundant compute, predicts categories for new returns, updates the central `predictions/predictions.csv` log, and generates visual accuracy metrics.
 
-4. **Phase 4: Monitoring & Analytics Dashboard (`dashboard.py`)**
+4. **Phase 4: Monitoring & Analytics Dashboard (`dashboard.py`)**  
    A live business intelligence interface built with Streamlit and Plotly. It parses customer metadata and timestamps directly from filenames, displays chronological predictions, allows single-customer filtering, generates category volume charts, and dynamically fetches original images from Google Drive for audit inspection.
 
 ---
@@ -37,22 +37,30 @@ High return volumes in growing e-commerce businesses create operational bottlene
 ├── image_refund_code.ipynb        # Model training and fine-tuning pipeline (Google Colab / Jupyter)
 ├── customers.json                 # Authorized customer database for identity validation
 ├── class_indices.json             # Numeric index-to-class label dictionary
-├── client_secret.json             # Google Cloud OAuth 2.0 Web Client credentials
+├── client_secret.json             # [EXCLUDED FROM REPO] Google Cloud OAuth credentials for Drive upload
 ├── requirements.txt               # Python package dependencies
 └── README.md                      # Project documentation and reproduction guide
 ```
 
 ---
 
+## 🔒 Important Security Notice: Google Drive Upload Credentials
+
+> **CRITICAL SECURITY NOTE:**  
+> The file **`client_secret.json`**—which handles Google OAuth 2.0 authentication and authorization for uploading customer return images to Google Drive in Phase 2—**is intentionally NOT included in this repository**.  
+> In compliance with software engineering and cybersecurity best practices, all secret API keys and credentials are systematically excluded via `.gitignore` to prevent credential leakage. A live demonstration showing the complete image upload workflow to Google Drive is documented in the recorded video presentation.
+
+---
+
 ## ⚙️ Prerequisites & Configuration Files
 
-Before running the application locally or in production, verify the presence of the following configuration files in the root directory:
+Before running the application locally on Windows, verify the presence of the following configuration files in the project root directory:
 
-- **`client_secret.json`:** OAuth 2.0 client secrets file obtained from Google Cloud Console (APIs & Services > Credentials). Required by `api_server_two_button_v4.py` for customer authentication and Drive upload permissions.
-- **`customers.json`:** JSON array containing authorized user records (`{"name": "...", "id": "..."}`) used by `/validate_customer`.
-- **`class_indices.json`:** JSON mapping generated during training to decode numeric predictions into product category names.
-- **`final_model_caltech.h5`:** Pre-trained Keras model weights. If not placed locally, `main.py` downloads it automatically from Google Drive via `gdown`.
-- **Environment Variables:**
+* **`client_secret.json` (Not committed to Git):** OAuth 2.0 client credentials obtained from Google Cloud Console. Required by `api_server_two_button_v4.py` for logging in and uploading return photos to Google Drive. Anyone reproducing this project locally must provide their own OAuth web client credentials file named `client_secret.json`.
+* **`customers.json`:** JSON array containing authorized user records (`{"name": "...", "id": "..."}`) used by `/validate_customer`.
+* **`class_indices.json`:** JSON mapping generated during training to decode numeric predictions into product category names.
+* **`final_model_caltech.h5`:** Pre-trained Keras model weights. If not placed locally, `main.py` downloads it automatically from Google Drive via `gdown`.
+* **Environment Variables:**
   * `OAUTHLIB_INSECURE_TRANSPORT=1`: Required for local development over HTTP (`http://localhost:5000`).
   * `TF_USE_LEGACY_KERAS=1`: Ensures Keras 2 compatibility with TensorFlow 2.19.
 
@@ -60,54 +68,62 @@ Before running the application locally or in production, verify the presence of 
 
 ---
 
-## 🚀 Installation & Local Setup
+## 🚀 Installation & Local Windows Setup
 
 ### 1. Clone the Repository
-```bash
+```powershell
 git clone https://github.com/Afshinrommel/refund-image-classifier.git
 cd refund-image-classifier
 ```
 
 ### 2. Create and Activate a Virtual Environment
-```bash
+```powershell
 # Create virtual environment
 python -m venv venv
 
-# Windows (PowerShell / Command Prompt):
+# Activate virtual environment in Windows PowerShell / Command Prompt:
 venv\Scripts\activate
+```
 
 ### 3. Install Dependencies
-```bash
+```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-----
+### 4. Provide Local Google OAuth Credentials (Required for Drive Upload)
+To test image uploads to Google Drive locally:
+* Place your own Google Cloud OAuth Web Client file named **`client_secret.json`** directly inside the root folder (`refund-image-classifier/`).
+* *(Reminder: This file is excluded from Git for security reasons).*
+
+---
 
 ## 🛠️ Step-by-Step Execution Guide
 
-### Step 1: Model Training (Optional / Offline)
+### Step 1: Model Training (Offline / Optional)
 To re-train the classifier or generate fresh weights:
-- Open `image_refund_code.ipynb` in Google Colab or a local Jupyter environment.
-- Ensure your Kaggle API key (`kaggle.json`) is configured to pull the Caltech-101 dataset.
-- Run all cells to fine-tune MobileNetV2 and export `final_model_caltech.h5` and `class_indices.json`.
+* Open `image_refund_code.ipynb` in Google Colab or local Jupyter notebook.
+* Configure your Kaggle API key (`kaggle.json`) to pull the Caltech-101 dataset.
+* Run all cells to fine-tune MobileNetV2 and export `final_model_caltech.h5` and `class_indices.json`.
 
 ### Step 2: Running the Client-Facing Flask Server
-1. Set the OAuth transport environment variable to allow local HTTP testing:
+1. Set the OAuth transport environment variable in your terminal:
 
-   ```bash
-   # Windows (PowerShell):
+   **In Windows PowerShell:**
+   ```powershell
    $env:OAUTHLIB_INSECURE_TRANSPORT="1"
+   ```
 
-   # Windows (Command Prompt):
+   **In Windows Command Prompt (CMD):**
+   ```cmd
    set OAUTHLIB_INSECURE_TRANSPORT=1
    ```
 
 2. Start the Flask application:
-   ```bash
+   ```powershell
    python api_server_two_button_v4.py
    ```
-3. Navigate to `http://localhost:5000/upload` in your browser.
+3. Open `http://localhost:5000/upload` in your web browser.
 4. Click **"🔑 Authorize Google Drive"** to sign in with your Google test account.
 5. Enter an authorized customer name and ID (e.g., `Afshin` / `22222`) and click **"✅ Validate Customer"**.
 6. Select a product image:
@@ -115,15 +131,15 @@ To re-train the classifier or generate fresh weights:
    * Click **"☁️ Upload to Drive"** to stage the item for nightly processing.
 
 ### Step 3: Triggering Batch Inference (Local Simulation)
-To run the automated batch job locally without waiting for GitHub Actions:
-```bash
+To run the automated batch job locally on Windows without waiting for the scheduled GitHub Actions runner:
+```powershell
 python main.py
 ```
-The script will pull pending images from the staging folder, skip previously processed records, perform batch inference, append new records to `predictions/predictions.csv`, and update `predictions/accuracy_chart.png`.
+The script pulls pending images from the staging folder, skips previously processed records, performs batch inference, appends new records to `predictions/predictions.csv`, and updates `predictions/accuracy_chart.png`.
 
 ### Step 4: Launching the Monitoring Dashboard
 Run the Streamlit analytics interface:
-```bash
+```powershell
 streamlit run dashboard.py
 ```
 - **KPI Card:** View details of the most recently processed return.
